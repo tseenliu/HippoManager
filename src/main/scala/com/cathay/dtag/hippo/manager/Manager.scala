@@ -1,5 +1,7 @@
 package com.cathay.dtag.hippo.manager
 
+import java.net.InetAddress
+
 import com.cathay.dtag.hippo.manager.HipposState._
 
 
@@ -18,22 +20,13 @@ object Manager extends App {
   Thread.sleep(15000)
 
   coordActor ! "print_global"
-//
-//  coordActor ! Cmd(service, Awake)
-//  coordActor ! "print"
-//
-//  val service2 = HippoService("127.0.0.1", "hippos_batchetl_tag")
-//  println(service2)
-//  coordActor ! "print"
-//  coordActor ! Cmd(service2, Awake)
-//  coordActor ! Cmd(service2, Awake)
-//  coordActor ! "print"
 }
 
 object Manager2 extends App {
   val coordActor = Coordinator.initiate(8301)
 
-  val service = HippoService("127.0.0.1", "hippos_batchetl_banktag")
+  val service = HippoService(InetAddress.getLocalHost.getHostAddress,
+    "hippos_batchetl_banktag")
   println(service)
 
   coordActor ! Cmd(service, Awake)
