@@ -32,7 +32,7 @@ class HippoSnapshot(addr: String) extends PersistentActor {
         }
       }
 
-      sender() ! UpdateLocalState
+      sender() ! UpdateStates
 
     case GetLocalState =>
       sender() ! state

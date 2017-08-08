@@ -32,6 +32,8 @@ class Coordinator extends Actor with ActorLogging {
   override def preStart(): Unit = {
     node.subscribe(self, initialStateMode = InitialStateAsEvents,
       classOf[MemberEvent])
+
+    self ! UpdateStates
   }
 
   override def postStop(): Unit = {
@@ -43,17 +45,29 @@ class Coordinator extends Actor with ActorLogging {
       log.info("Member is Up: {}", member.address)
 
     case MemberRemoved(member, previousStatus) =>
-      log.info(
-        "Member is Removed: {} after {}",
+      log.info("Member is Removed: {} after {}",
         member.address, previousStatus)
+
+      (localSnapshot ? GetLocalState).mapTo[HipposState].map { state =>
+        replicator ! Update(HipposStateKey,
+          LWWMap.empty[String, HipposState], WriteLocal) { m =>
+          val memberAddr = member.address.toString
+          if (m.contains(memberAddr)) {
+            m - memberAddr
+          } else {
+            m
+          }
+        }
+      }
 
     case cmd: Cmd =>
       localSnapshot ! cmd
 
-    case UpdateLocalState =>
+    case UpdateStates =>
       (localSnapshot ? GetLocalState).mapTo[HipposState].map { state =>
+        val writeAll = WriteAll(timeout = 5.seconds)
         replicator ! Update(HipposStateKey,
-          LWWMap.empty[String, HipposState], WriteLocal) { m =>
+          LWWMap.empty[String, HipposState], writeAll) { m =>
           m + (addr -> state)
         }
       }
@@ -69,9 +83,9 @@ class Coordinator extends Actor with ActorLogging {
 
     case g @ GetSuccess(HipposStateKey, Some(replyTo: ActorRef)) =>
       println("GetSuccess ddata...")
-      val value = g.get(HipposStateKey).entries
-      value.foreach(println)
-      replyTo ! value
+      val value = g.get(HipposStateKey)
+      println(value)
+      replyTo ! value.entries
 
     case GetFailure(HipposStateKey, Some(replyTo: ActorRef)) =>
       println("GetFailure ddata...")

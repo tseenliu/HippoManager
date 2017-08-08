@@ -23,7 +23,7 @@ object HipposState {
 
   case object GetLocalState
   case object GetGlobalState
-  case object UpdateLocalState
+  case object UpdateStates
 }
 
 case class HipposState(state: Map[String, String] = Map()) {
