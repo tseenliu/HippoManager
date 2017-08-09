@@ -21,7 +21,7 @@ object Manager extends App {
   coordActor ! Cmd(service, Awake)
   coordActor ! "print_global"
 
-  Thread.sleep(1000)
+  Thread.sleep(500)
 
   coordActor ! "print_global"
 }

@@ -6,7 +6,7 @@ import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberRemov
 import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
 import com.typesafe.config.ConfigFactory
-import akka.pattern.ask
+import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 
 import scala.concurrent.duration._
@@ -19,7 +19,6 @@ class Coordinator extends Actor with ActorLogging {
   implicit val timeout = Timeout(5 seconds)
 
   implicit val node = Cluster(context.system)
-
   val addr: String = node.selfAddress.toString
 
   val localSnapshot: ActorRef = context.actorOf(
@@ -27,7 +26,6 @@ class Coordinator extends Actor with ActorLogging {
 
   val replicator: ActorRef = DistributedData(context.system).replicator
   val HipposStateKey = LWWMapKey[String, HipposState]("hippsState")
-
 
   override def preStart(): Unit = {
     node.subscribe(self, initialStateMode = InitialStateAsEvents,
@@ -48,16 +46,10 @@ class Coordinator extends Actor with ActorLogging {
       log.info("Member is Removed: {} after {}",
         member.address, previousStatus)
 
-      (localSnapshot ? GetLocalState).mapTo[HipposState].map { state =>
-        replicator ! Update(HipposStateKey,
-          LWWMap.empty[String, HipposState], WriteLocal) { m =>
-          val memberAddr = member.address.toString
-          if (m.contains(memberAddr)) {
-            m - memberAddr
-          } else {
-            m
-          }
-        }
+      replicator ! Update(HipposStateKey,
+        LWWMap.empty[String, HipposState], WriteLocal) { m =>
+        val memberAddr = member.address.toString
+        if (m.contains(memberAddr)) m - memberAddr else m
       }
 
     case cmd: Cmd =>
@@ -67,9 +59,7 @@ class Coordinator extends Actor with ActorLogging {
       (localSnapshot ? GetLocalState).mapTo[HipposState].map { state =>
         val writeAll = WriteAll(timeout = 5.seconds)
         replicator ! Update(HipposStateKey,
-          LWWMap.empty[String, HipposState], writeAll) { m =>
-          m + (addr -> state)
-        }
+          LWWMap.empty[String, HipposState], writeAll)(_ + (addr -> state))
       }
 
     case x: UpdateResponse[_] =>
