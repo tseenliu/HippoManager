@@ -21,8 +21,8 @@ class Coordinator extends Actor with ActorLogging {
   implicit val node = Cluster(context.system)
   val addr: String = node.selfAddress.toString
 
-  val localSnapshot: ActorRef = context.actorOf(
-    Props(new HippoSnapshot(addr)), name = "local-snapshot")
+  val statePersister: ActorRef = context.actorOf(
+    Props(new StatePersister(addr)), name = "local-snapshot")
 
   val replicator: ActorRef = DistributedData(context.system).replicator
   val HipposStateKey = LWWMapKey[String, HipposState]("hippsState")
@@ -53,10 +53,10 @@ class Coordinator extends Actor with ActorLogging {
       }
 
     case cmd: Cmd =>
-      localSnapshot ! cmd
+      statePersister ! cmd
 
     case UpdateStates =>
-      (localSnapshot ? GetLocalState).mapTo[HipposState].map { state =>
+      (statePersister ? GetLocalState).mapTo[HipposState].map { state =>
         val writeAll = WriteAll(timeout = 5.seconds)
         replicator ! Update(HipposStateKey,
           LWWMap.empty[String, HipposState], writeAll)(_ + (addr -> state))
@@ -66,7 +66,7 @@ class Coordinator extends Actor with ActorLogging {
       //print("UpdateResponse", x.key)
 
     case "print_local" =>
-      (localSnapshot ? GetLocalState).foreach(println)
+      (statePersister ? GetLocalState).foreach(println)
 
     case "print_global" =>
       replicator ! Get(HipposStateKey, ReadLocal, request = Some(sender()))

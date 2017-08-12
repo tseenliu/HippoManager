@@ -5,7 +5,7 @@ import java.net.InetAddress
 import akka.persistence.{PersistentActor, SnapshotOffer}
 import HipposState._
 
-class HippoSnapshot(addr: String) extends PersistentActor {
+class StatePersister(addr: String) extends PersistentActor {
 
   override def persistenceId: String = addr
 

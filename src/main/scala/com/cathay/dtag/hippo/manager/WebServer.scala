@@ -1,6 +1,6 @@
 package com.cathay.dtag.hippo.manager
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 import spray.json._
 
 import scala.concurrent.duration._
@@ -40,6 +41,7 @@ trait RestAPI extends Directives with JsonSupport {
   implicit val ec: ExecutionContext
 
   val auction: ActorRef
+  val coordinator: ActorSelection
 
   val route =
     path("auction") {
@@ -53,19 +55,27 @@ trait RestAPI extends Directives with JsonSupport {
         val bids: Future[Bids] = (auction ? GetBids).mapTo[Bids]
         complete(bids)
       }
+    } ~
+    path("coord") {
+      get {
+        coordinator ! "print_global"
+        complete("print global")
+      }
     }
 
 }
 
 object WebServer extends App with RestAPI {
-  override implicit val system: ActorSystem = ActorSystem("web-server")
+  //override implicit val system: ActorSystem = ActorSystem("web-server")
+  val config = ConfigFactory.load()
+  override implicit val system = ActorSystem("ClusterSystem", config)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
   override implicit val ec: ExecutionContext = system.dispatcher
 
   val auction = system.actorOf(Props[Auction], "auction")
+  val coordAddr = "akka.tcp://ClusterSystem@127.0.0.1:2551"
+  val coordinator = system.actorSelection(s"$coordAddr/user/coordinator")
 
   val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
-  println(s"Server online at http://localhost:8080\nPress RETURN to stop...")
-
-
+  println(s"Server online at http://localhost:8080...")
 }
