@@ -32,9 +32,12 @@ object HippoConfig {
   case object Restart extends Command
   case object Report extends Command // TODO: params about Kafka
   case object Check extends Command
+  case object Get extends Command
+  case object Remove extends Command
+
   // only for entry
   case class Register(conf: HippoConfig) extends Command
-  case class Remove(key: String)
+  case class Delete(key: String)
 
   // SSH result
   case class BashResult(code: Int, pid: Option[Int], echo: String="") {

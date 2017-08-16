@@ -50,6 +50,7 @@ object HippoFSM {
   case object ConfirmDead extends HippoEvent
   case object NotFound extends HippoEvent
   case object GiveUp extends HippoEvent
+  case object Clean extends HippoEvent
 }
 
 
@@ -168,5 +169,8 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
       self ! Restart
   }
 
-
+//  whenUnhandled {
+//    case Event(Remove, _) =>
+//      goto(Removed) applying Clean
+//  }
 }
