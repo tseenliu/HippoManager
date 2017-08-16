@@ -10,6 +10,7 @@ import scala.reflect.ClassTag
 import scala.util.Random
 import scala.reflect._
 
+import HippoConfig._
 
 object HippoFSM {
 
@@ -39,9 +40,6 @@ object HippoFSM {
     override val retry: Int = 0
   }
 
-  // Hippo Domain Event
-  def getCurrentTime: Long = System.currentTimeMillis() / 1000
-
   sealed trait HippoEvent {
     val timestamp: Long = getCurrentTime
   }
@@ -52,19 +50,6 @@ object HippoFSM {
   case object ConfirmDead extends HippoEvent
   case object NotFound extends HippoEvent
   case object GiveUp extends HippoEvent
-
-  // Command from outer
-  sealed trait Command
-  case class Start(Interval: Option[Int]=None) extends Command
-  case object Stop extends Command
-  case object Restart extends Command
-  case object Report extends Command // TODO: params about Kafka
-  case object Check extends Command
-
-  // SSH result
-  case class BashResult(code: Int, pid: Option[Int], echo: String="") {
-    def isSuccess: Boolean = code == 0
-  }
 }
 
 
