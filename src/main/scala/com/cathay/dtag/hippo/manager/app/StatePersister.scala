@@ -1,9 +1,7 @@
-package com.cathay.dtag.hippo.manager
-
-import java.net.InetAddress
+package com.cathay.dtag.hippo.manager.app
 
 import akka.persistence.{PersistentActor, SnapshotOffer}
-import HipposState._
+import com.cathay.dtag.hippo.manager.app.HipposState._
 
 class StatePersister(addr: String) extends PersistentActor {
 

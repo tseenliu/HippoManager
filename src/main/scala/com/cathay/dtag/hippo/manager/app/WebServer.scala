@@ -1,4 +1,4 @@
-package com.cathay.dtag.hippo.manager
+package com.cathay.dtag.hippo.manager.app
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, ActorSystem, Props}
 import akka.http.scaladsl.Http

@@ -1,4 +1,4 @@
-package com.cathay.dtag.hippo.manager
+package com.cathay.dtag.hippo.manager.app
 
 import java.time.Instant
 

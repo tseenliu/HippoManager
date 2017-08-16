@@ -1,8 +1,8 @@
-package com.cathay.dtag.hippo.manager
+package com.cathay.dtag.hippo.manager.app
 
 import java.net.InetAddress
 
-import com.cathay.dtag.hippo.manager.HipposState._
+import com.cathay.dtag.hippo.manager.app.HipposState._
 
 
 object Manager extends App {

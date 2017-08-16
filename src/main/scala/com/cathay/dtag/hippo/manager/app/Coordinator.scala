@@ -1,13 +1,13 @@
-package com.cathay.dtag.hippo.manager
+package com.cathay.dtag.hippo.manager.app
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberRemoved, MemberUp}
 import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
-import com.typesafe.config.ConfigFactory
-import akka.pattern.{ask, pipe}
+import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
 
