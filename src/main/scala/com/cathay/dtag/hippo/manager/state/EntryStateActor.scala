@@ -20,3 +20,4 @@ class EntryStateActor(addr: String) extends PersistentActor {
   override def persistenceId = addr
 }
 
+

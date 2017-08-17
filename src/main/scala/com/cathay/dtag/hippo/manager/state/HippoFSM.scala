@@ -10,9 +10,9 @@ import scala.reflect.ClassTag
 import scala.util.Random
 import scala.reflect._
 
-import HippoConfig._
 
 object HippoFSM {
+  import HippoConfig._
 
   // FSM state
   sealed trait HippoState extends FSMState
@@ -34,47 +34,55 @@ object HippoFSM {
     val updatedAt: Long
     val interval: Int
     val retry: Int
+
   }
   case class Program(interval: Int, updatedAt: Long, retry: Int=0) extends HippoData
   case class Process(monitorPID: Int, interval: Int, updatedAt: Long) extends HippoData {
     override val retry: Int = 0
   }
 
-  sealed trait HippoEvent {
+  sealed trait HippoEvent{
     val timestamp: Long = getCurrentTime
   }
   case class RunSuccess(monitorPID: Int, interval: Option[Int]=None) extends HippoEvent
-  case object RunFail extends HippoEvent
-  case object KillProc extends HippoEvent
-  case object ConfirmRunning extends HippoEvent
-  case object ConfirmDead extends HippoEvent
-  case object NotFound extends HippoEvent
-  case object GiveUp extends HippoEvent
-  case object Clean extends HippoEvent
+  case class RunFail() extends HippoEvent
+  case class KillSuccess() extends HippoEvent
+  case class Confirm(isRunning: Boolean) extends HippoEvent
+  case class NotFound() extends HippoEvent
+  case class GiveUp() extends HippoEvent
 }
 
 
-class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, HippoEvent]{
+class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, HippoEvent] {
 
   import HippoFSM._
+  import HippoConfig._
+  import HippoConfig.Command._
 
-  override def persistenceId: String = conf.key
+  val CHECK_TIMER: String = "check_timeout"
 
-  override implicit def domainEventClassTag: ClassTag[HippoEvent] = classTag[HippoEvent]
+  override def persistenceId: String = conf.id
+  //override def journalPluginId: String = "akka.persistence.hippo-fsm.journal"
+  //override def snapshotPluginId: String = "akka.persistence.hippo-fsm.snapshot-store"
+
+  override def domainEventClassTag: ClassTag[HippoEvent] = classTag[HippoEvent]
 
   override def applyEvent(evt: HippoEvent, currData: HippoData): HippoData = {
     evt match {
       case RunSuccess(pid, interval) =>
-        Process(pid, currData.interval, evt.timestamp)
-      case ConfirmRunning =>
+        val checkInterval = interval.getOrElse(currData.interval)
+        Process(pid, checkInterval, evt.timestamp)
+      case Confirm(true) =>
         val proc = currData.asInstanceOf[Process]
         Process(proc.monitorPID, proc.interval, evt.timestamp)
-      case (KillProc | ConfirmDead) =>
+      case (KillSuccess() | Confirm(false)) =>
         Program(currData.interval, evt.timestamp)
-      case RunFail =>
+      case RunFail() =>
         Program(currData.interval, evt.timestamp, currData.retry + 1)
-      case GiveUp =>
+      case GiveUp() =>
         Program(currData.interval, evt.timestamp, currData.retry)
+      case NotFound() =>
+        currData
     }
   }
 
@@ -91,6 +99,17 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
     realInterval > checkInterval
   }
 
+  def currentInst: HippoInstance = {
+   val stateID = stateName.identifier
+
+    stateData match {
+      case p: Program =>
+        HippoInstance(conf, p.interval, p.updatedAt, None, stateID)
+      case p: Process =>
+        HippoInstance(conf, p.interval, p.updatedAt, Some(p.monitorPID), stateID)
+    }
+  }
+
   /**
     * Finite State Machine
     */
@@ -105,14 +124,14 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
       if (res.isSuccess) {
         goto(Running) applying RunSuccess(res.pid.get, interval)
       } else {
-        goto(Dead) applying RunFail
+        goto(Dead) applying RunFail()
       }
   }
 
   when(Running) {
     case Event(Stop, _) =>
       // TODO: sh kill.sh
-      goto(Sleep) applying KillProc
+      goto(Sleep) applying KillSuccess()
     case Event(Restart, _) =>
       // TODO: sh restart.sh
       val res = fakeCallRemote
@@ -120,16 +139,16 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
       if (res.isSuccess) {
         goto(Running) applying RunSuccess(res.pid.get)
       } else {
-        goto(Dead) applying RunFail
+        goto(Dead) applying RunFail()
       }
     case Event(Report, _) =>
-      goto(Running) applying ConfirmRunning
+      goto(Running) applying Confirm(true)
 
     case Event(Check, Process(pid, checkInterval, updatedAt)) =>
       if (checkNotFound(updatedAt, checkInterval)) {
-        goto(Missing) applying NotFound
+        goto(Missing) applying NotFound()
       } else {
-        goto(Running) applying ConfirmRunning
+        goto(Running) applying Confirm(true)
       }
   }
 
@@ -138,39 +157,49 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
       // TODO: ps aux
       val res = fakeCallRemote
       if (res.isSuccess) {
-        goto(Running) applying ConfirmRunning
+        goto(Running) applying Confirm(true)
       } else {
-        goto(Dead) applying ConfirmDead
+        goto(Dead) applying Confirm(false)
       }
   }
 
   when(Dead) {
-    case Event(Restart, Program(interval, _, retry)) =>
+    case Event(Start(_), Program(interval, _, retry)) =>
+      println(s"retry: $retry")
       if (retry < conf.maxRetries) {
         // TODO: sh restart.sh or start.sh
         val res = fakeCallRemote
         if (res.isSuccess) {
           goto(Running) applying RunSuccess(res.pid.get, Some(interval))
         } else {
-          goto(Dead) applying RunFail
+          goto(Dead) applying RunFail()
         }
       } else {
-        goto(Sleep) applying GiveUp
+        goto(Sleep) applying GiveUp()
       }
   }
 
   onTransition {
     case _ -> Running =>
-      val interval = stateData.asInstanceOf[Process].interval
-      setTimer("check_timeout", Check, FiniteDuration(interval, SECONDS), repeat = false)
+      setTimer(CHECK_TIMER, Check, FiniteDuration(stateData.interval, SECONDS), repeat = false)
     case Running -> Missing =>
       self ! Check
     case _ -> Dead =>
-      self ! Restart
+      self ! Start()
   }
 
-//  whenUnhandled {
-//    case Event(Remove, _) =>
-//      goto(Removed) applying Clean
-//  }
+  whenUnhandled {
+    case Event(GetState, _) =>
+      sender() ! currentInst
+      stay()
+
+    case Event(PrintState, _) =>
+      println(currentInst)
+      stay()
+
+    case Event(Remove, _) =>
+      deleteMessages(lastSequenceNr)
+      deleteSnapshot(lastSequenceNr)
+      stop()
+  }
 }

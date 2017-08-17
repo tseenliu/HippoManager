@@ -92,7 +92,7 @@ class Coordinator extends Actor with ActorLogging {
 object Coordinator {
   def initiate(port: Int): ActorRef = {
     val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port")
-      .withFallback(ConfigFactory.load())
+      .withFallback(ConfigFactory.load().getConfig("coordinator"))
 
     val system = ActorSystem("ClusterSystem", config)
 

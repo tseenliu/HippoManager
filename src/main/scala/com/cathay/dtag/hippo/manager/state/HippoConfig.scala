@@ -8,36 +8,54 @@ case class HippoConfig(host: String,
                        maxRetries: Int=3,
                        checkInterval: Int=HippoConfig.DEFAULT_INTERVAL) {
 
-  def key = s"$name@$host:$path"
+  def location: String = s"$name@$host:$path"
+  def id: String = HippoConfig.hash(location)
 }
 
-//case class HippoInstance(conf: HippoConfig,
-//                         checkInterval: Int=HippoConfig.DEFAULT_INTERVAL,
-//                         lastUpdateTime: Long=HippoConfig.getCurrentTime,
-//                         monitorPID: Option[Int]=None,
-//                         state: String=HippoFSM.Sleep.identifier) {
-//
-//  override def toString: String = s"${conf.key}, executed at ${conf.execTime}, last updated at $lastUpdateTime"
-//}
+case class HippoInstance(conf: HippoConfig,
+                         checkInterval: Int,
+                         lastUpdateTime: Long,
+                         monitorPID: Option[Int],
+                         state: String) {
+
+  override def toString: String = {
+    val str = s"${conf.id}, executed at ${conf.execTime}, last updated at $lastUpdateTime, now is $state"
+    if (monitorPID.isEmpty) {
+      str
+    } else {
+      str + s", run with pid ${monitorPID.get}"
+    }
+  }
+}
 
 
 object HippoConfig {
   val DEFAULT_INTERVAL: Int = 30*1000
   def getCurrentTime: Long = System.currentTimeMillis() / 1000
 
+  def hash(s: String): String = {
+    val m = java.security.MessageDigest.getInstance("MD5")
+    val b = s.getBytes("UTF-8")
+    m.update(b, 0, b.length)
+    new java.math.BigInteger(1, m.digest()).toString(16)
+  }
+
   // Command from outer
   sealed trait Command
-  case class Start(Interval: Option[Int]=None) extends Command
-  case object Stop extends Command
-  case object Restart extends Command
-  case object Report extends Command // TODO: params about Kafka
-  case object Check extends Command
-  case object Get extends Command
-  case object Remove extends Command
+  object Command {
+    case class Start(Interval: Option[Int]=None) extends Command
+    case object Stop extends Command
+    case object Restart extends Command
+    case object Report extends Command // TODO: params about Kafka
+    case object Check extends Command
+    case object GetState extends Command
+    case object PrintState extends Command
+    case object Remove extends Command
 
-  // only for entry
-  case class Register(conf: HippoConfig) extends Command
-  case class Delete(key: String)
+    // only for entry
+    case class Register(conf: HippoConfig) extends Command
+    case class Delete(key: String) extends Command
+  }
 
   // SSH result
   case class BashResult(code: Int, pid: Option[Int], echo: String="") {
