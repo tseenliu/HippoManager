@@ -43,20 +43,20 @@ object StateApp extends App {
 
   Thread.sleep(r.nextInt(2000))
 
-//  hippoFSM ! Stop
-//  hippoFSM ! PrintState
-//
-//  Thread.sleep(r.nextInt(2000))
+  hippoFSM ! Stop
+  hippoFSM ! PrintState
 
-//  hippoFSM ! Start()
-//  hippoFSM ! PrintState
-//
-//  Thread.sleep(r.nextInt(2000))
-//
-//  hippoFSM ! Restart
-//  hippoFSM ! PrintState
-//
-//  Thread.sleep(r.nextInt(2000))
+  Thread.sleep(r.nextInt(2000))
+
+  hippoFSM ! Start()
+  hippoFSM ! PrintState
+
+  Thread.sleep(r.nextInt(2000))
+
+  hippoFSM ! Restart
+  hippoFSM ! PrintState
+
+  Thread.sleep(r.nextInt(2000))
 
   //hippoFSM ! Remove
 }
