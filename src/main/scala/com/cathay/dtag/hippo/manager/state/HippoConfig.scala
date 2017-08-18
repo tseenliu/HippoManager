@@ -9,7 +9,7 @@ case class HippoConfig(host: String,
                        checkInterval: Int=HippoConfig.DEFAULT_INTERVAL) {
 
   def location: String = s"$name@$host:$path"
-  def id: String = HippoConfig.hash(location)
+  def id: String = HippoConfig.hash(s"$name@$host")
 }
 
 case class HippoInstance(conf: HippoConfig,
@@ -48,13 +48,13 @@ object HippoConfig {
     case object Restart extends Command
     case object Report extends Command // TODO: params about Kafka
     case object Check extends Command
-    case object GetState extends Command
-    case object PrintState extends Command
-    case object Remove extends Command
+    case object GetStatus extends Command
+    case object PrintStatus extends Command
+    case object Delete extends Command
 
     // only for entry
     case class Register(conf: HippoConfig) extends Command
-    case class Delete(key: String) extends Command
+    case class Remove(key: String) extends Command
   }
 
   // SSH result

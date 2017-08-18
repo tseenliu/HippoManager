@@ -2,8 +2,6 @@ package com.cathay.dtag.hippo.manager.state
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
-import com.cathay.dtag.hippo.manager.state.HippoFSM.KillSuccess
-import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -21,42 +19,34 @@ object StateApp extends App {
     system.actorOf(Props(new HippoFSM(conf)), name = conf.id)
   }
 
+  def sleepRandom(maxSeconds: Int=2000): Unit =
+    Thread.sleep(r.nextInt(maxSeconds))
+
   val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey")
   val hippoFSM = createHippoActorRef(hConf)
 
-  hippoFSM ! PrintState
-
-  Thread.sleep(r.nextInt(2000))
+  hippoFSM ! PrintStatus
+  sleepRandom()
 
   hippoFSM ! Start()
-  hippoFSM ! PrintState
-
-  Thread.sleep(r.nextInt(2000))
-
-  hippoFSM ! Report
-  hippoFSM ! PrintState
-
-  Thread.sleep(r.nextInt(2000))
+  hippoFSM ! PrintStatus
+  sleepRandom()
 
   hippoFSM ! Report
-  hippoFSM ! PrintState
-
-  Thread.sleep(r.nextInt(2000))
+  hippoFSM ! PrintStatus
+  sleepRandom()
 
   hippoFSM ! Stop
-  hippoFSM ! PrintState
-
-  Thread.sleep(r.nextInt(2000))
+  hippoFSM ! PrintStatus
+  sleepRandom()
 
   hippoFSM ! Start()
-  hippoFSM ! PrintState
-
-  Thread.sleep(r.nextInt(2000))
+  hippoFSM ! PrintStatus
+  sleepRandom()
 
   hippoFSM ! Restart
-  hippoFSM ! PrintState
-
-  Thread.sleep(r.nextInt(2000))
+  hippoFSM ! PrintStatus
+  sleepRandom()
 
   //hippoFSM ! Remove
 }

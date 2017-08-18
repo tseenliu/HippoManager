@@ -62,8 +62,6 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
   val CHECK_TIMER: String = "check_timeout"
 
   override def persistenceId: String = conf.id
-  //override def journalPluginId: String = "akka.persistence.hippo-fsm.journal"
-  //override def snapshotPluginId: String = "akka.persistence.hippo-fsm.snapshot-store"
 
   override def domainEventClassTag: ClassTag[HippoEvent] = classTag[HippoEvent]
 
@@ -121,17 +119,24 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
       // TODO: sh start.sh
       val res = fakeCallRemote
 
-      if (res.isSuccess) {
-        goto(Running) applying RunSuccess(res.pid.get, interval)
+      //if (res.isSuccess) {
+      if (true) {
+        goto(Running) applying RunSuccess(res.pid.get, interval) andThen {
+          case _ => saveStateSnapshot()
+        }
       } else {
-        goto(Dead) applying RunFail()
+        goto(Dead) applying RunFail() andThen {
+          case _ => saveStateSnapshot()
+        }
       }
   }
 
   when(Running) {
     case Event(Stop, _) =>
       // TODO: sh kill.sh
-      goto(Sleep) applying KillSuccess()
+      goto(Sleep) applying KillSuccess() andThen {
+        case _ => saveStateSnapshot()
+      }
     case Event(Restart, _) =>
       // TODO: sh restart.sh
       val res = fakeCallRemote
@@ -139,12 +144,14 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
       if (res.isSuccess) {
         goto(Running) applying RunSuccess(res.pid.get)
       } else {
-        goto(Dead) applying RunFail()
+        goto(Dead) applying RunFail() andThen {
+          case _ => saveStateSnapshot()
+        }
       }
     case Event(Report, _) =>
       goto(Running) applying Confirm(true)
 
-    case Event(Check, Process(pid, checkInterval, updatedAt)) =>
+    case Event(Check, Process(_, checkInterval, updatedAt)) =>
       if (checkNotFound(updatedAt, checkInterval)) {
         goto(Missing) applying NotFound()
       } else {
@@ -169,13 +176,20 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
       if (retry < conf.maxRetries) {
         // TODO: sh restart.sh or start.sh
         val res = fakeCallRemote
+
         if (res.isSuccess) {
-          goto(Running) applying RunSuccess(res.pid.get, Some(interval))
+          goto(Running) applying RunSuccess(res.pid.get, Some(interval)) andThen {
+            case _ => saveStateSnapshot()
+          }
         } else {
-          goto(Dead) applying RunFail()
+          goto(Dead) applying RunFail() andThen {
+            case _ => saveStateSnapshot()
+          }
         }
       } else {
-        goto(Sleep) applying GiveUp()
+        goto(Sleep) applying GiveUp() andThen {
+          case _ => saveStateSnapshot()
+        }
       }
   }
 
@@ -189,15 +203,14 @@ class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, H
   }
 
   whenUnhandled {
-    case Event(GetState, _) =>
-      sender() ! currentInst
-      stay()
+    case Event(GetStatus, _) =>
+      stay() replying currentInst
 
-    case Event(PrintState, _) =>
+    case Event(PrintStatus, _) =>
       println(currentInst)
       stay()
 
-    case Event(Remove, _) =>
+    case Event(Delete, _) =>
       deleteMessages(lastSequenceNr)
       deleteSnapshot(lastSequenceNr)
       stop()
