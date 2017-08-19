@@ -9,7 +9,9 @@ case class HippoConfig(host: String,
                        checkInterval: Long=HippoConfig.DEFAULT_INTERVAL) {
 
   def location: String = s"$name@$host:$path"
-  def id: String = HippoConfig.hash(s"$name@$host")
+  val key: String = s"$name@$host"
+  val id: String = HippoConfig.generateHippoID(host, name)
+  override val hashCode: Int = HippoConfig.hash(key).intValue()
 }
 
 case class HippoInstance(conf: HippoConfig,
@@ -33,11 +35,15 @@ object HippoConfig {
   val DEFAULT_INTERVAL: Long = 30 * 1000 // 30 seconds
   def getCurrentTime: Long = System.currentTimeMillis()
 
-  def hash(s: String): String = {
+  def hash(s: String): BigInt = {
     val m = java.security.MessageDigest.getInstance("MD5")
     val b = s.getBytes("UTF-8")
     m.update(b, 0, b.length)
-    new java.math.BigInteger(1, m.digest()).toString(16)
+    new java.math.BigInteger(1, m.digest())//.toString(16)
+  }
+
+  def generateHippoID(host: String, name: String): String = {
+    hash(s"$name@$host").toString(16)
   }
 
   // Command from outer
@@ -54,7 +60,7 @@ object HippoConfig {
 
     // only for entry
     case class Register(conf: HippoConfig) extends Command
-    case class Remove(key: String) extends Command
+    case class Remove(host: String, name: String) extends Command
   }
 }
 
