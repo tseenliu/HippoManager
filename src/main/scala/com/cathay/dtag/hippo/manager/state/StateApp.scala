@@ -22,13 +22,25 @@ object StateApp extends App {
   def sleepRandom(maxSeconds: Int=2000): Unit =
     Thread.sleep(r.nextInt(maxSeconds))
 
-  val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey")
+  val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey", checkInterval = 3)
   val hippoFSM = createHippoActorRef(hConf)
 
   hippoFSM ! PrintStatus
   sleepRandom()
 
   hippoFSM ! Start()
+  hippoFSM ! PrintStatus
+  sleepRandom()
+
+  hippoFSM ! Report
+  hippoFSM ! PrintStatus
+  sleepRandom()
+
+  hippoFSM ! Restart
+  hippoFSM ! PrintStatus
+  sleepRandom()
+
+  hippoFSM ! Report
   hippoFSM ! PrintStatus
   sleepRandom()
 
@@ -44,9 +56,5 @@ object StateApp extends App {
   hippoFSM ! PrintStatus
   sleepRandom()
 
-  hippoFSM ! Restart
-  hippoFSM ! PrintStatus
-  sleepRandom()
-
-  //hippoFSM ! Remove
+  hippoFSM ! Delete
 }
