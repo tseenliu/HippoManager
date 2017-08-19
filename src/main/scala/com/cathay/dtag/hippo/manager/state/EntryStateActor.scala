@@ -2,6 +2,7 @@ package com.cathay.dtag.hippo.manager.state
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.persistence.{PersistentActor, RecoveryCompleted, SnapshotOffer}
+import HippoConfig.Command
 import HippoConfig.Command._
 
 object EntryStateActor {
@@ -10,6 +11,7 @@ object EntryStateActor {
   sealed trait EntryEvent
   case class AddHippo(config: HippoConfig) extends EntryEvent
   case class RemoveHippo(id: String) extends EntryEvent
+  case class Operation(cmd: Command, id: String)
 
   // State
   case class HippoRef(config: HippoConfig, actor: ActorRef)
@@ -29,11 +31,19 @@ object EntryStateActor {
 
     def containActor(config: HippoConfig): Boolean = map.contains(config.id)
   }
+
+  // Response
+  sealed trait Response
+  object Response {
+    case object HippoExists extends Response
+    case object HippoNotFound extends Response
+    case object EntryCmdSuccess extends Response
+  }
 }
 
 class EntryStateActor(addr: String) extends PersistentActor {
   import EntryStateActor._
-
+  import EntryStateActor.Response._
 
   var repo: HippoRepo = HippoRepo()
 
@@ -69,7 +79,10 @@ class EntryStateActor(addr: String) extends PersistentActor {
       if (!repo.containActor(conf)) {
         persist(AddHippo(conf)) { evt =>
           updateRepo(evt)
+          sender() ! EntryCmdSuccess
         }
+      } else {
+        sender() ! HippoExists
       }
     case Remove(host, name) =>
       val id = HippoConfig.generateHippoID(host, name)
@@ -78,7 +91,17 @@ class EntryStateActor(addr: String) extends PersistentActor {
         persist(RemoveHippo(id)) { evt =>
           repo.getActor(id) ! Delete
           updateRepo(evt)
+          sender() ! EntryCmdSuccess
         }
+      } else {
+        sender() ! HippoNotFound
+      }
+    case Operation(cmd, id) =>
+      if (repo.containActor(id)) {
+        repo.getActor(id) ! cmd
+        sender() ! EntryCmdSuccess
+      } else {
+        sender() ! HippoNotFound
       }
   }
 
