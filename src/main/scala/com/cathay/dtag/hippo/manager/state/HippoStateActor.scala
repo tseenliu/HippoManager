@@ -4,14 +4,14 @@ import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 
 import scala.concurrent.duration._
-import HippoFSM._
+import HippoStateActor._
 
 import scala.reflect.ClassTag
 import scala.reflect._
 import scala.concurrent.duration._
 
 
-object HippoFSM {
+object HippoStateActor {
   import HippoConfig._
 
   // FSM state
@@ -54,9 +54,9 @@ object HippoFSM {
 }
 
 
-class HippoFSM(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, HippoEvent] {
+class HippoStateActor(conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, HippoEvent] {
 
-  import HippoFSM._
+  import HippoStateActor._
   import HippoConfig._
   import HippoConfig.Command._
 

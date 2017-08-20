@@ -16,7 +16,7 @@ object StateApp extends App {
 
   def createHippoActorRef(conf: HippoConfig): ActorRef = {
     println(s"${conf.id} is created at ${conf.location}")
-    system.actorOf(Props(new HippoFSM(conf)), name = conf.id)
+    system.actorOf(Props(new HippoStateActor(conf)), name = conf.id)
   }
 
   def sleepRandom(maxSeconds: Int=2000): Unit =

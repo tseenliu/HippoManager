@@ -23,7 +23,7 @@ object EntryStateActor {
 
   // State
   case class HippoRef(config: HippoConfig, actor: Option[ActorRef]=None) {
-    def isActive = actor.isDefined
+    def isActive: Boolean = actor.isDefined
   }
 
   case class HippoRepo(map: Map[String, HippoRef] = Map()) {
@@ -42,12 +42,13 @@ object EntryStateActor {
     }
 
     def initActors(createActor: HippoConfig => ActorRef): HippoRepo = {
-      val newMap = map.mapValues {
-        case HippoRef(config, None) =>
-          val actorRef = createActor(config)
-          HippoRef(config, Some(actorRef))
-        case hr @ HippoRef(_, Some(_))  =>
+      val newMap = map.mapValues { hr =>
+        if (hr.isActive) {
           hr
+        } else {
+          val actorRef = createActor(hr.config)
+          HippoRef(hr.config, Some(actorRef))
+        }
       }
       HippoRepo(newMap)
     }
@@ -57,7 +58,7 @@ object EntryStateActor {
     def getActor(id: String): ActorRef = map(id).actor.get
 
     def containActor(id: String): Boolean =
-      map.contains(id) && map(id).actor.isDefined
+      map.contains(id) && map(id).isActive
 
     def containActor(config: HippoConfig): Boolean =
       containActor(config.id)
@@ -66,7 +67,7 @@ object EntryStateActor {
       map.values.map(_.config).toList
 
     def actors: List[ActorRef] =
-      map.values.map(_.actor).filter(_.isDefined).map(_.get).toList
+      map.values.filter(_.isActive).map(_.actor.get).toList
   }
 
   // Response
@@ -87,7 +88,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
   var repo: HippoRepo = HippoRepo()
 
   def createActor(config: HippoConfig): ActorRef = {
-    context.actorOf(Props(new HippoFSM(config)), name = config.id)
+    context.actorOf(Props(new HippoStateActor(config)), name = config.id)
   }
 
   def takeSnapShot(): Unit = {
@@ -160,6 +161,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
         sender() ! HippoNotFound
       }
     case GetNodeStatus =>
+      // TODO: Cache result
       implicit val timeout = Timeout(5 seconds)
       val futureList = Future.traverse(repo.actors) { actor =>
         (actor ? GetStatus).mapTo[HippoInstance]
