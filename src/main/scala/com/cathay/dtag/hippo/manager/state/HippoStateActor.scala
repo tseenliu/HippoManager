@@ -3,8 +3,8 @@ package com.cathay.dtag.hippo.manager.state
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 
-import scala.concurrent.duration._
 import HippoStateActor._
+import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance}
 
 import scala.reflect.ClassTag
 import scala.reflect._
@@ -41,6 +41,7 @@ object HippoStateActor {
     override val retry: Int = 0
   }
 
+  // FSM Event
   sealed trait HippoEvent{
     val timestamp: Long = getCurrentTime
   }
@@ -58,7 +59,7 @@ class HippoStateActor(conf: HippoConfig) extends PersistentFSM[HippoState, Hippo
 
   import HippoStateActor._
   import HippoConfig._
-  import HippoConfig.Command._
+  import HippoConfig.HippoCommand._
 
   val CHECK_TIMER: String = "check_timeout"
 
@@ -110,7 +111,6 @@ class HippoStateActor(conf: HippoConfig) extends PersistentFSM[HippoState, Hippo
   /**
     * Finite State Machine
     */
-
   startWith(Sleep, Program(conf.checkInterval, conf.execTime))
 
   when(Sleep) {

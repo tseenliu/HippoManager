@@ -1,5 +1,7 @@
 package com.cathay.dtag.hippo.manager.state
 
+import com.cathay.dtag.hippo.manager.conf.HippoConfig
+
 import scala.util.Random
 
 

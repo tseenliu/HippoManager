@@ -1,4 +1,4 @@
-package com.cathay.dtag.hippo.manager.app
+package com.cathay.dtag.hippo.manager.api
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, ActorSystem, Props}
 import akka.http.scaladsl.Http
@@ -65,7 +65,7 @@ trait RestAPI extends Directives with JsonSupport {
 
 }
 
-object WebServer extends App with RestAPI {
+object APIServer extends App with RestAPI {
   //override implicit val system: ActorSystem = ActorSystem("web-server")
   val config = ConfigFactory.load()
   override implicit val system = ActorSystem("ClusterSystem", config)

@@ -4,12 +4,10 @@ import akka.actor.{ActorRef, Props}
 import akka.persistence.{PersistentActor, RecoveryCompleted, SnapshotOffer}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
+import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance, HippoGroup}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-
-import HippoConfig.Command
-import HippoConfig.Command._
 
 
 object EntryStateActor {
@@ -18,70 +16,56 @@ object EntryStateActor {
   sealed trait EntryEvent
   case class HippoAdded(config: HippoConfig) extends EntryEvent
   case class HippoRemoved(id: String) extends EntryEvent
-  case class Operation(cmd: Command, id: String)
-  case object GetNodeStatus
 
   // State
   case class HippoRef(config: HippoConfig, actor: Option[ActorRef]=None) {
     def isActive: Boolean = actor.isDefined
   }
 
-  case class HippoRepo(map: Map[String, HippoRef] = Map()) {
+  case class HippoRepo(state: Map[String, HippoRef] = Map()) {
 
-    def count: Int = map.size
+    def count: Int = state.size
 
     def addOne(config: HippoConfig, actor: Option[ActorRef]=None): HippoRepo =
-      HippoRepo(map + (config.id -> HippoRef(config, actor)))
+      HippoRepo(state + (config.id -> HippoRef(config, actor)))
 
     def addConfigs(configs: List[HippoConfig]): HippoRepo = {
       val newRefMap = configs
-        .filter(c => !map.contains(c.id))
+        .filter(c => !state.contains(c.id))
         .map(c => c.id -> HippoRef(c, None)).toMap
 
-      HippoRepo(map ++ newRefMap)
+      HippoRepo(state ++ newRefMap)
     }
 
     def initActors(createActor: HippoConfig => ActorRef): HippoRepo = {
-      val newMap = map.mapValues { hr =>
+      val repo = state.values.foldLeft(this) { (repo, hr) =>
         if (hr.isActive) {
-          hr
-        } else {
-          val actorRef = createActor(hr.config)
-          HippoRef(hr.config, Some(actorRef))
+          repo
+        } else{
+          val actor = createActor(hr.config)
+          repo.addOne(hr.config, Some(actor))
         }
       }
-      HippoRepo(newMap)
+      repo
     }
 
-    def remove(id: String): HippoRepo = HippoRepo(map - id)
-
-    def getActor(id: String): ActorRef = map(id).actor.get
-
-    def containActor(id: String): Boolean =
-      map.contains(id) && map(id).isActive
-
-    def containActor(config: HippoConfig): Boolean =
-      containActor(config.id)
-
-    def configs: List[HippoConfig] =
-      map.values.map(_.config).toList
-
+    def remove(id: String): HippoRepo = HippoRepo(state - id)
+    def getActor(id: String): ActorRef = state(id).actor.get
+    def hasRegistered(id: String): Boolean = state.contains(id)
+    def hasRegistered(config: HippoConfig): Boolean = hasRegistered(config.id)
+    def containActor(id: String): Boolean = hasRegistered(id) && state(id).isActive
+    def containActor(config: HippoConfig): Boolean = containActor(config.id)
+    def configs: List[HippoConfig] = state.values.map(_.config).toList
     def actors: List[ActorRef] =
-      map.values.filter(_.isActive).map(_.actor.get).toList
-  }
-
-  // Response
-  sealed trait Response
-  object Response {
-    case object HippoExists extends Response
-    case object HippoNotFound extends Response
-    case object EntryCmdSuccess extends Response
+      state.values.filter(_.isActive).map(_.actor.get).toList
   }
 }
 
 class EntryStateActor(addr: String) extends PersistentActor {
   import EntryStateActor._
-  import EntryStateActor.Response._
+  import HippoConfig.HippoCommand._
+  import HippoConfig.EntryCommand._
+  import HippoConfig.Response._
 
   import context.dispatcher
 
@@ -103,7 +87,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
       val actor = createActor(config)
       repo = repo.addOne(config, Some(actor))
       takeSnapShot()
-    case HippoRemoved(id) if repo.containActor(id) =>
+    case HippoRemoved(id) if repo.hasRegistered(id) =>
       repo = repo.remove(id)
       takeSnapShot()
   }
@@ -111,7 +95,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
   override def persistenceId = addr
 
   override def receiveRecover = {
-    case evt @ HippoAdded(config) =>
+    case evt @ HippoAdded(config) if !repo.containActor(config) =>
       println(s"Entry receive hippo added: $evt on recovering mood")
       repo = repo.addOne(config)
     case evt @ HippoRemoved(id) =>
@@ -123,11 +107,12 @@ class EntryStateActor(addr: String) extends PersistentActor {
     case RecoveryCompleted =>
       println("Recovery Completed and Now I'll init actors before switching to receiving mode")
       repo = repo.initActors(createActor)
+      println("init actors completed.")
   }
 
   override def receiveCommand = {
     case Register(conf) =>
-      if (!repo.containActor(conf)) {
+      if (!repo.hasRegistered(conf)) {
         persist(HippoAdded(conf)) { evt =>
           updateRepo(evt)
           sender() ! EntryCmdSuccess
@@ -138,7 +123,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
     case Remove(host, name) =>
       val id = HippoConfig.generateHippoID(host, name)
 
-      if (repo.containActor(id)) {
+      if (repo.hasRegistered(id)) {
         persist(HippoRemoved(id)) { evt =>
           repo.getActor(id) ! Delete
           updateRepo(evt)
@@ -148,6 +133,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
         sender() ! HippoNotFound
       }
     case Operation(GetStatus, id) =>
+      implicit val timeout = Timeout(5 seconds)
       if (repo.containActor(id)) {
         (repo.getActor(id) ? GetStatus) pipeTo sender()
       } else {
@@ -164,8 +150,11 @@ class EntryStateActor(addr: String) extends PersistentActor {
       // TODO: Cache result
       implicit val timeout = Timeout(5 seconds)
       val futureList = Future.traverse(repo.actors) { actor =>
-        (actor ? GetStatus).mapTo[HippoInstance]
-      }.map(list => list.map(inst => inst.conf.id -> inst).toMap)
+          (actor ? GetStatus).mapTo[HippoInstance]
+        }.map { list =>
+          list.map(inst => inst.conf.id -> inst).toMap
+        }.map(x => HippoGroup(x))
+
       futureList pipeTo sender()
   }
 }
