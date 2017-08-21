@@ -17,7 +17,9 @@ case class HippoInstance(conf: HippoConfig,
   }
 }
 
-case class HippoGroup(group: Map[String, HippoInstance]) {
+case class HippoGroup(group: Map[String, HippoInstance] = Map()) {
+  val createdAt: Long = HippoConfig.getCurrentTime
+
   def merge(state: HippoGroup): HippoGroup = {
     HippoGroup(group ++ state.group)
   }

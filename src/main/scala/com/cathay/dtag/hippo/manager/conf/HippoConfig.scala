@@ -53,7 +53,7 @@ object HippoConfig {
 
   sealed trait CoordCommand extends ManagerCommand
   object CoordCommand {
-    case object UpdateStates extends CoordCommand
+    case object UpdateStatus extends CoordCommand
     case object PrintNodeStatus extends CoordCommand
     case object PrintClusterStatus extends CoordCommand
   }

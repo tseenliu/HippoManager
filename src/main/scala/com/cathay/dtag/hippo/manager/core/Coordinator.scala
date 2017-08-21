@@ -20,26 +20,35 @@ import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand.GetNodeStatus
 class Coordinator extends Actor with ActorLogging {
   import HippoConfig.CoordCommand._
 
-  import scala.concurrent.ExecutionContext.Implicits.global
+  // concurrent related
+  import context.dispatcher
   implicit val timeout = Timeout(5 seconds)
 
+  // node settings
   implicit val node = Cluster(context.system)
   val addr: String = node.selfAddress.toString
 
+  // entry actor
   val entry: ActorRef = context.actorOf(
     Props(new EntryStateActor(addr)), name = "entry-state")
 
+  // distributed sync
   val replicator: ActorRef = DistributedData(context.system).replicator
   val HippoGroupKey = LWWMapKey[String, HippoGroup]("hippoGroup")
+
+  // node status
+  var hippoGroup: HippoGroup = HippoGroup()
+  val updateInterval = 20.seconds
+  val updateTask = context.system.scheduler.schedule(0.seconds, 5.seconds, self, UpdateStatus)
 
   override def preStart(): Unit = {
     node.subscribe(self, initialStateMode = InitialStateAsEvents,
       classOf[MemberEvent])
-    self ! UpdateStates
   }
 
   override def postStop(): Unit = {
     node.unsubscribe(self)
+    updateTask.cancel()
   }
 
   override def receive: Receive = {
@@ -59,8 +68,9 @@ class Coordinator extends Actor with ActorLogging {
     case cmd: EntryCommand =>
       (entry ? cmd) pipeTo sender()
 
-    case UpdateStates =>
+    case UpdateStatus =>
       (entry ? GetNodeStatus).mapTo[HippoGroup].map { group =>
+        hippoGroup = group
         val writeAll = WriteAll(timeout = 5.seconds)
         replicator ! Update(HippoGroupKey,
           LWWMap.empty[String, HippoGroup], writeAll)(_ + (addr -> group))
