@@ -13,7 +13,7 @@ object HippoJsonProtocol extends DefaultJsonProtocol {
   implicit val bodyFormat = jsonFormat4(BodyParams)
 
   // HippoConfig
-  implicit object configFormat extends RootJsonFormat[HippoConfig] {
+  implicit object ConfigFormat extends RootJsonFormat[HippoConfig] {
     override def write(obj: HippoConfig): JsValue = {
       JsObject(
         "host" -> JsString(obj.host),
