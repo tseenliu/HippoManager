@@ -38,7 +38,7 @@ import spray.json._
   *   DELETE /host/:host/name/:name
   */
 
-trait ManagerRoute extends Directives with HippoJsonProtocol {
+trait APIRoute extends Directives with HippoJsonProtocol {
   import HippoConfig.CoordCommand._
   import HippoConfig.EntryCommand._
   import HippoConfig.HippoCommand._
@@ -54,34 +54,42 @@ trait ManagerRoute extends Directives with HippoJsonProtocol {
 
   def handleResponse(x: Any): Route = x match {
     case EntryCmdSuccess =>
-      complete(StatusCodes.OK)
+      complete(StatusCodes.OK, JsObject(
+        "message" -> JsString("Command deliver successfully.")
+      ))
     case HippoExists =>
-      complete(StatusCodes.BadRequest, "Hippo exists.")
+      complete(StatusCodes.BadRequest, JsObject(
+        "message" -> JsString("Hippo exists.")
+      ))
     case HippoNotFound =>
-      complete(StatusCodes.NotFound)
+      complete(StatusCodes.NotFound, JsObject(
+        "message" -> JsString("Hippo is not found.")
+      ))
     case CmdUnhandled =>
-      complete(StatusCodes.BadRequest, "Command can not be handled at this state.")
+      complete(StatusCodes.BadRequest, JsObject(
+        "message" -> JsString("Command can not be handled at this state.")
+      ))
   }
 
   def commandRoute: Route =
-    (post & entity(as[CommandParams])) { bodyParams =>
-      val id = HippoConfig.generateHippoID(bodyParams.host, bodyParams.serviceName)
+    (post & entity(as[CommandParams])) { cmdParams =>
+      val id = HippoConfig.generateHippoID(cmdParams.host, cmdParams.serviceName)
 
       path("start") {
         // 4. Start hippo
-        println(s"start ${bodyParams.serviceName}")
-        val op = Operation(Start(bodyParams.interval), id)
+        println(s"start ${cmdParams.serviceName}")
+        val op = Operation(Start(cmdParams.interval), id)
         onSuccess(coordinator ? op)(handleResponse)
       } ~
       path("restart") {
         // 5. Restart hippo
-        println(s"restart ${bodyParams.serviceName}")
+        println(s"restart ${cmdParams.serviceName}")
         val op = Operation(Restart, id)
         onSuccess(coordinator ? op)(handleResponse)
       } ~
       path("stop") {
         // 6. Stop hippo
-        println(s"stop ${bodyParams.serviceName}")
+        println(s"stop ${cmdParams.serviceName}")
         val op = Operation(Stop, id)
         onSuccess(coordinator ? op)(handleResponse)
       }
@@ -133,14 +141,13 @@ trait ManagerRoute extends Directives with HippoJsonProtocol {
             (coordinator ? GetNodeStatus).mapTo[HippoGroup]
           }
         }
-      } ~
+      } ~ commandRoute ~
       pathPrefix("host" / Segment / "name" / Segment) { (host, name) =>
         val id = HippoConfig.generateHippoID(host, name)
         instanceRoute(id)
       } ~
       pathPrefix("instances" / Segment) { id =>
         instanceRoute(id)
-      } ~
-      commandRoute
+      }
     }
 }

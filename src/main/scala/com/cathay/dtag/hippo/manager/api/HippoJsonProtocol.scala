@@ -82,4 +82,18 @@ trait HippoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
       HippoGroup(address, group)
     }
   }
+
+//  implicit object ResponseFormat extends RootJsonFormat[Response] {
+//    override def write(resp: Response): JsValue = {
+//      resp match {
+//        case HippoExists =>
+//
+//        case HippoNotFound =>
+//        case EntryCmdSuccess =>
+//        case CmdUnhandled =>
+//      }
+//    }
+//
+//    override def read(json: JsValue): Response = ???
+//  }
 }

@@ -14,7 +14,7 @@ import spray.json._
 import akka.pattern.ask
 
 
-object APIServer extends App with ManagerRoute {
+object APIServer extends App with APIRoute {
   val config = ConfigFactory.load()
   override implicit val system = ActorSystem("ClusterSystem", config)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -22,10 +22,12 @@ object APIServer extends App with ManagerRoute {
 
   implicit def exceptionHandler: ExceptionHandler =
     ExceptionHandler {
-      case _ =>
+      case ex =>
         extractUri { uri =>
           val message = "Bad numbers, bad result!!!"
-          complete(HttpResponse(StatusCodes.InternalServerError, entity = message))
+          complete(StatusCodes.InternalServerError, JsObject(
+            "message" -> JsString(ex.getMessage)
+          ))
         }
     }
 
