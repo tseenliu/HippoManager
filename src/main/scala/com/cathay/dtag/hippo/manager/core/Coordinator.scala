@@ -19,6 +19,7 @@ import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand.GetNodeStatus
 
 class Coordinator extends Actor with ActorLogging {
   import HippoConfig.CoordCommand._
+  import HippoConfig.Response._
 
   // concurrent related
   import context.dispatcher
@@ -37,7 +38,7 @@ class Coordinator extends Actor with ActorLogging {
   val HippoGroupKey = LWWMapKey[String, HippoGroup]("hippoGroup")
 
   // node status
-  var hippoGroup: HippoGroup = HippoGroup()
+  var hippoGroup: HippoGroup = HippoGroup(addr)
   val updateInterval = 20.seconds
   val updateTask = context.system.scheduler.schedule(0.seconds, 5.seconds, self, UpdateStatus)
 
@@ -84,27 +85,28 @@ class Coordinator extends Actor with ActorLogging {
         .map(_.group.values)
         .foreach(println)
 
-    case PrintClusterStatus =>
+    case GetClusterStatus =>
       replicator ! Get(HippoGroupKey, ReadLocal, request = Some(sender()))
 
     case g @ GetSuccess(HippoGroupKey, Some(replyTo: ActorRef)) =>
       println("GetSuccess ddata...")
       val value = g.get(HippoGroupKey)
-      println(value)
       replyTo ! value.entries
 
     case GetFailure(HippoGroupKey, Some(replyTo: ActorRef)) =>
       println("GetFailure ddata...")
+      replyTo ! Map[String, HippoGroup]()
 
     case NotFound(HippoGroupKey, Some(replyTo: ActorRef)) =>
       println("NotFound ddata...")
+      replyTo ! Map[String, HippoGroup]()
   }
 }
 
 object Coordinator {
   def initiate(port: Int): ActorRef = {
     val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port")
-      .withFallback(ConfigFactory.load().getConfig("coordinator"))
+      .withFallback(ConfigFactory.load())
 
     val system = ActorSystem("ClusterSystem", config)
 

@@ -1,5 +1,8 @@
 package com.cathay.dtag.hippo.manager.conf
 
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.StatusCodes.CustomStatusCode
+
 case class HippoConfig(host: String,
                        name: String,
                        path: String,
@@ -46,7 +49,7 @@ object HippoConfig {
   sealed trait EntryCommand extends ManagerCommand
   object EntryCommand {
     case class Register(conf: HippoConfig) extends EntryCommand
-    case class Remove(host: String, name: String) extends EntryCommand
+    case class Remove(id: String) extends EntryCommand
     case class Operation(cmd: HippoCommand, id: String) extends EntryCommand
     case object GetNodeStatus extends EntryCommand
   }
@@ -55,7 +58,7 @@ object HippoConfig {
   object CoordCommand {
     case object UpdateStatus extends CoordCommand
     case object PrintNodeStatus extends CoordCommand
-    case object PrintClusterStatus extends CoordCommand
+    case object GetClusterStatus extends CoordCommand
   }
 
   // Response
@@ -64,6 +67,7 @@ object HippoConfig {
     case object HippoExists extends Response
     case object HippoNotFound extends Response
     case object EntryCmdSuccess extends Response
+    case object CmdUnhandled extends Response
   }
 }
 

@@ -120,9 +120,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
       } else {
         sender() ! HippoExists
       }
-    case Remove(host, name) =>
-      val id = HippoConfig.generateHippoID(host, name)
-
+    case Remove(id) =>
       if (repo.hasRegistered(id)) {
         persist(HippoRemoved(id)) { evt =>
           repo.getActor(id) ! Delete
@@ -153,7 +151,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
           (actor ? GetStatus).mapTo[HippoInstance]
         }.map { list =>
           list.map(inst => inst.conf.id -> inst).toMap
-        }.map(x => HippoGroup(x))
+        }.map(x => HippoGroup(addr, x))
 
       futureList pipeTo sender()
   }

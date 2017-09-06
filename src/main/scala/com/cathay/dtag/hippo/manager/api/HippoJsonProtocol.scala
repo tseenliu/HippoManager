@@ -1,16 +1,19 @@
 package com.cathay.dtag.hippo.manager.api
 
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response
+import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response._
 import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup, HippoInstance}
 import spray.json._
 
-case class BodyParams(host: String,
-                      serviceName: String,
-                      path: Option[String],
-                      interval: Option[Long])
 
+case class CommandParams(host: String,
+                         serviceName: String,
+                         path: Option[String],
+                         interval: Option[Long])
 
-object HippoJsonProtocol extends DefaultJsonProtocol {
-  implicit val bodyFormat = jsonFormat4(BodyParams)
+trait HippoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
+  implicit val commandFormat = jsonFormat4(CommandParams)
 
   // HippoConfig
   implicit object ConfigFormat extends RootJsonFormat[HippoConfig] {
@@ -18,7 +21,8 @@ object HippoJsonProtocol extends DefaultJsonProtocol {
       JsObject(
         "host" -> JsString(obj.host),
         "serviceName" -> JsString(obj.name),
-        "path" -> JsString(obj.path)
+        "path" -> JsString(obj.path),
+        "execTime" -> JsNumber(obj.execTime)
       )
     }
 
@@ -63,26 +67,19 @@ object HippoJsonProtocol extends DefaultJsonProtocol {
   implicit object GroupFormat extends RootJsonFormat[HippoGroup] {
     override def write(obj: HippoGroup): JsValue = {
       JsObject(
+        "nodeAddress" -> JsString(obj.nodeAddress),
         "snapshotTime" -> JsNumber(obj.createdAt),
         "instances" -> JsArray(obj.group.values.map(_.toJson).toSeq: _*)
       )
     }
 
     override def read(json: JsValue): HippoGroup = {
+      val address = json.asJsObject.fields("nodeAddress")
+        .convertTo[String]
       val group = json.asJsObject.fields("instances")
         .convertTo[Seq[HippoInstance]]
         .map(inst => inst.conf.id -> inst).toMap
-      HippoGroup(group)
+      HippoGroup(address, group)
     }
   }
-}
-
-object HippoJsonProtocolApp extends App {
-  import HippoJsonProtocol._
-
-  val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey", checkInterval = 30*1000)
-  val hInst = HippoInstance(hConf, 40*1000, HippoConfig.getCurrentTime, Some(5790), "running")
-  val hGroup = HippoGroup(Map(hConf.id -> hInst))
-  val jsString = hGroup.toJson.prettyPrint
-  println(jsString)
 }
