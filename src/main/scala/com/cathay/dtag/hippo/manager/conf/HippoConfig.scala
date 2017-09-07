@@ -1,7 +1,8 @@
 package com.cathay.dtag.hippo.manager.conf
 
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.StatusCodes.CustomStatusCode
+
+import java.security.MessageDigest
+
 
 case class HippoConfig(host: String,
                        name: String,
@@ -21,7 +22,7 @@ object HippoConfig {
   def getCurrentTime: Long = System.currentTimeMillis()
 
   def hash(s: String): BigInt = {
-    val m = java.security.MessageDigest.getInstance("MD5")
+    val m = MessageDigest.getInstance("MD5")
     val b = s.getBytes("UTF-8")
     m.update(b, 0, b.length)
     new java.math.BigInteger(1, m.digest())//.toString(16)

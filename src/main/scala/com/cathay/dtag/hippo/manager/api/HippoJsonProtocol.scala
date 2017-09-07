@@ -1,9 +1,7 @@
 package com.cathay.dtag.hippo.manager.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response._
-import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup, HippoInstance}
+import com.cathay.dtag.hippo.manager.conf._
 import spray.json._
 
 
@@ -82,18 +80,4 @@ trait HippoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
       HippoGroup(address, group)
     }
   }
-
-//  implicit object ResponseFormat extends RootJsonFormat[Response] {
-//    override def write(resp: Response): JsValue = {
-//      resp match {
-//        case HippoExists =>
-//
-//        case HippoNotFound =>
-//        case EntryCmdSuccess =>
-//        case CmdUnhandled =>
-//      }
-//    }
-//
-//    override def read(json: JsValue): Response = ???
-//  }
 }
