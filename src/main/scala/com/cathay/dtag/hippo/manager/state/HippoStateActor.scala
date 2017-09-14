@@ -4,7 +4,7 @@ import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 import HippoStateActor._
 import akka.persistence.{SaveSnapshotFailure, SaveSnapshotSuccess}
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response.{StateCmdFailure, StateCmdSuccess}
+import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response.{StateCmdFailure, StateCmdSuccess, StateCmdUnhandled}
 import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance}
 
 import scala.reflect.ClassTag
@@ -46,7 +46,7 @@ object HippoStateActor {
   sealed trait HippoEvent{
     val timestamp: Long = getCurrentTime
   }
-  case class RunSuccess(monitorPID: Int, interval: Option[Long]=None) extends HippoEvent
+  case class RunSuccess(monitorPID: Int, interval: Long) extends HippoEvent
   case class RunFail(interval: Option[Long]=None) extends HippoEvent
   case class KillSuccess() extends HippoEvent
   case class Confirm(isRunning: Boolean) extends HippoEvent
@@ -54,6 +54,7 @@ object HippoStateActor {
   case object NotFound extends HippoEvent
   case class GiveUp() extends HippoEvent
   case class ReportSuccess(updateAt: Long) extends HippoEvent
+  case class Reset() extends HippoEvent
 }
 
 
@@ -76,7 +77,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   override def applyEvent(evt: HippoEvent, currData: HippoData): HippoData = {
     evt match {
       case RunSuccess(pid, interval) =>
-        Process(pid, interval.get, evt.timestamp)
+        Process(pid, interval, evt.timestamp)
       case Confirm(true) =>
         val proc = currData.asInstanceOf[Process]
         Process(proc.monitorPID, proc.interval, evt.timestamp)
@@ -89,6 +90,8 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         Program(interval.get, evt.timestamp, currData.retry + 1)
       case GiveUp() =>
         Program(currData.interval, evt.timestamp)
+      case Reset() =>
+        Program(HippoConfig.DEFAULT_INTERVAL, evt.timestamp)
       case (NotFound | Found) =>
         currData
     }
@@ -115,9 +118,9 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     }
   }
 
-  def getCurrentCheckInterval(bufferTime: Int = 1200) = {
-//    val ct = stateData.interval + bufferTime
-//    println(s"ct: $ct")
+  def getCurrentCheckInterval(bufferTime: Int = 1500) = {
+    val ct = stateData.interval + bufferTime
+    println(s"ct: $ct")
     FiniteDuration(stateData.interval + bufferTime, MILLISECONDS)
   }
 
@@ -132,7 +135,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       val res = controller.startHippo(checkInterval)
 
       if (res.isSuccess) {
-        goto(Running) applying RunSuccess(res.pid.get, Some(checkInterval)) andThen { _ =>
+        goto(Running) applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
           setTimer(CHECK_TIMER, ReportCheck, getCurrentCheckInterval(), repeat = true)
           saveStateSnapshot()
           sender() ! StateCmdSuccess
@@ -157,7 +160,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       val res = controller.restartHippo(checkInterval)
 
       if (res.isSuccess) {
-        stay applying RunSuccess(res.pid.get, Some(checkInterval)) andThen { _ =>
+        stay applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
           setTimer(CHECK_TIMER, ReportCheck, getCurrentCheckInterval(), repeat = true)
           saveStateSnapshot()
           sender() ! StateCmdSuccess
@@ -185,7 +188,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   }
 
   when(Missing) {
-    case Event(Check, _) =>
+    case Event(RemoteCheck, _) =>
       val res = controller.checkHippo
 
       if (res.isSuccess) {
@@ -206,7 +209,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
 
         if (res.isSuccess) {
           cancelTimer(RETRY_TIMER)
-          goto(Running) applying RunSuccess(res.pid.get, Some(interval)) andThen { _ =>
+          goto(Running) applying RunSuccess(res.pid.get, interval) andThen { _ =>
             saveStateSnapshot()
             sender() ! StateCmdSuccess
           }
@@ -223,7 +226,8 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         }
       }
     case Event(Start(interval), _) =>
-      goto(Sleep) applying Found andThen { _ =>
+      goto(Sleep) applying Reset() andThen { _ =>
+        saveSnapshot()
         self ! Start(interval)
       }
   }
@@ -232,7 +236,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     case (Missing | Dead | Running) -> Running =>
       setTimer(CHECK_TIMER, ReportCheck, getCurrentCheckInterval(), repeat = true)
     case _ -> Missing =>
-      self ! Check
+      self ! RemoteCheck
     case (Sleep | Running | Missing) -> Dead =>
       setTimer(RETRY_TIMER, Retry, 3 seconds, repeat = true)
   }
@@ -252,7 +256,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       stop()
 
     case Event(SaveSnapshotSuccess(metadata), _) ⇒
-      //println(s"state shifted and save snapshot succeed.")
       stay()
 
     case Event(SaveSnapshotFailure(metadata, reason), _) ⇒
@@ -260,8 +263,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       stay()
 
     case Event(msg, _) =>
-      println(s"[ERROR] Wrong $msg command in: $currentInst")
-      sender() ! StateCmdFailure
+      sender() ! StateCmdUnhandled
       stay()
   }
 }

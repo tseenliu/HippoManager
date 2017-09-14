@@ -36,9 +36,9 @@ object HippoConfig {
     case class Start(Interval: Option[Long]=None) extends HippoCommand
     case object Stop extends HippoCommand
     case class Restart(Interval: Option[Long]=None) extends HippoCommand
-    case class Report(updatedAt: Long) extends HippoCommand // TODO: params about Kafka
+    case class Report(updatedAt: Long) extends HippoCommand
     case object ReportCheck extends HippoCommand
-    case object Check extends HippoCommand
+    case object RemoteCheck extends HippoCommand
     case object GetStatus extends HippoCommand
     case object PrintStatus extends HippoCommand
     case object Delete extends HippoCommand
@@ -68,6 +68,7 @@ object HippoConfig {
     case object EntryCmdSuccess extends Response
     case object StateCmdSuccess extends Response
     case object StateCmdFailure extends Response
+    case object StateCmdUnhandled extends Response
   }
 }
 

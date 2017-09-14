@@ -29,13 +29,13 @@ class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
   implicit val node = Cluster(context.system)
   val addr: String = node.selfAddress.toString
 
-  // report actor
-  val reporter: ActorRef = context.actorOf(
-    Props(new HippoReporter(reporterConfig)), name = "reporter")
-
   // entry actor
   val entry: ActorRef = context.actorOf(
     Props(new EntryStateActor(addr)), name = "entry-state")
+
+  // report actor
+  val reporter: ActorRef = context.actorOf(
+    Props(new HippoReporter(reporterConfig, entry)), name = "reporter")
 
   // distributed sync
   val replicator: ActorRef = DistributedData(context.system).replicator

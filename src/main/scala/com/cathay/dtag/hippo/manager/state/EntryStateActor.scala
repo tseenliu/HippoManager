@@ -146,12 +146,12 @@ class EntryStateActor(addr: String) extends PersistentActor {
 
       futureList pipeTo sender()
 
-    case Operation(Report(updatedAt), id) =>
-      if (registry.containActor(id)) {
-        registry.getActor(id) ! Report(updatedAt)
-      } else {
-        sender() ! HippoNotFound
-      }
+//    case Operation(Report(updatedAt), id) =>
+//      if (registry.containActor(id)) {
+//        registry.getActor(id) ! Report(updatedAt)
+//      } else {
+//        sender() ! HippoNotFound
+//      }
     case Operation(cmd, id) =>
       implicit val timeout = Timeout(5 seconds)
       if (registry.containActor(id)) {
@@ -164,8 +164,11 @@ class EntryStateActor(addr: String) extends PersistentActor {
       val id = HippoConfig.generateHippoID("edge1", msg.service_name)
       if (registry.containActor(id)) {
         // TO FIX
-        val rt = msg.exec_time + "123"
-        self ! Operation(Report(rt.toLong), id)
+        val rt = msg.exec_time + "000"
+        //self ! Operation(Report(rt.toLong), id)
+        if (registry.containActor(id)) {
+          registry.getActor(id) ! Report(rt.toLong)
+        }
       } else {
         println(s"${msg.service_name} id not found, or actor is not running.")
       }

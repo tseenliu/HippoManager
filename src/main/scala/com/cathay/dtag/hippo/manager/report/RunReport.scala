@@ -15,6 +15,6 @@ object RunReport extends App {
   val config = ConfigFactory.parseFile(new File("config/reporter.conf"))
 
   val akkaSystem = ActorSystem("reporter-try")
-  val clientActor = akkaSystem.actorOf(Props(new HippoReporter(config)),"KafakClient")
+  //val clientActor = akkaSystem.actorOf(Props(new HippoReporter(config)),"KafakClient")
 
 }
