@@ -115,8 +115,11 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     }
   }
 
-  def getCurrentCheckInterval(bufferTime: Int = 1200) =
+  def getCurrentCheckInterval(bufferTime: Int = 1200) = {
+//    val ct = stateData.interval + bufferTime
+//    println(s"ct: $ct")
     FiniteDuration(stateData.interval + bufferTime, MILLISECONDS)
+  }
 
   /**
     * Finite State Machine
@@ -149,11 +152,13 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         sender() ! StateCmdSuccess
       }
     case Event(Restart(interval), _) =>
+      cancelTimer(CHECK_TIMER)
       val checkInterval = interval.getOrElse(HippoConfig.DEFAULT_INTERVAL)
       val res = controller.restartHippo(checkInterval)
 
       if (res.isSuccess) {
         stay applying RunSuccess(res.pid.get, Some(checkInterval)) andThen { _ =>
+          setTimer(CHECK_TIMER, ReportCheck, getCurrentCheckInterval(), repeat = true)
           saveStateSnapshot()
           sender() ! StateCmdSuccess
         }
@@ -170,6 +175,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       if (checkNotFound(stateData.updatedAt, stateData.interval)) {
         cancelTimer(CHECK_TIMER)
         goto(Missing) applying NotFound andThen { _ =>
+          println(s"${conf.name}@${conf.host}] missing.")
           saveStateSnapshot()
         }
       } else {

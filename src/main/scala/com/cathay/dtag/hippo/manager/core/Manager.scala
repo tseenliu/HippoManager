@@ -30,89 +30,211 @@ object Manager extends App {
   //val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey", checkInterval = 30*1000)
   val hConf = HippoConfig("edge1", "hippos.service.test1", "/Users/Tse-En/Desktop/HippoPlugin/HippoPlugin/test")
 
-  (coordActor ? Register(hConf)) onSuccess {
-    case EntryCmdSuccess =>
-      println("register successfully")
-    case HippoExists =>
-      println("HippoExists")
-  }
-  Thread.sleep(5000)
 
-  (coordActor ? Operation(Start(Some(10000)), hConf.id)) onSuccess {
-    case StateCmdSuccess =>
-      println("Start success.")
-    case StateCmdFailure =>
-      println("error, please check state.")
-    case HippoNotFound =>
-      println("hippo not found.")
-    case StateCmdFailure =>
-      println("command not handle.")
-  }
-  Thread.sleep(50000)
+  println("u can type hippo command: ")
+  var ok = true
+  while (ok) {
+    val cmd = Console.readLine()
+    ok = cmd != null
 
-  (coordActor ? Operation(Stop, hConf.id)) onSuccess {
-    case StateCmdSuccess =>
-      println("Stop success.")
-    case StateCmdFailure =>
-      println("error, please check state.")
-    case HippoNotFound =>
-      println("hippo not found.")
-    case StateCmdFailure =>
-      println("command not handle.")
-  }
-  Thread.sleep(5000)
+    cmd match {
+      case msg if msg.startsWith("hippo register") => register()
+      case msg if msg.startsWith("hippo show") => showStatus()
+      case msg if msg.startsWith("hippo nodestatus") => coordActor ! PrintNodeStatus
+      case msg if msg.startsWith("hippo clusterstatus") => coordActor ! PrintClusterStatus
 
-  (coordActor ? Operation(Start(), hConf.id)) onSuccess {
-    case StateCmdSuccess =>
-      println("Start success.")
-    case StateCmdFailure =>
-      println("error, please check state.")
-    case HippoNotFound =>
-      println("hippo not found.")
-    case StateCmdFailure =>
-      println("command not handle.")
-  }
-  Thread.sleep(40000)
+      case msg if msg.length > 11 && msg.startsWith("hippo start") =>
+        val interval = msg.substring(12).toLong
+        start(interval)
 
-  (coordActor ? Operation(Restart(Some(15000)), hConf.id)) onSuccess {
-    case StateCmdSuccess =>
-      println("Restart success.")
-    case StateCmdFailure =>
-      println("error, please check state.")
-    case HippoNotFound =>
-      println("hippo not found.")
-    case StateCmdFailure =>
-      println("command not handle.")
-  }
-  Thread.sleep(35000)
+      case msg if msg.startsWith("hippo start") =>
+        defaultStart()
 
+      case msg if msg.startsWith("hippo stop") =>
+        stop()
 
-  (coordActor ? Operation(GetStatus, hConf.id)) onSuccess {
-    case hi: HippoInstance =>
-      println(hi)
-    case HippoNotFound =>
-      println("hippo not found.")
-  }
-  Thread.sleep(20000)
+      case msg if msg.length > 13 && msg.startsWith("hippo restart") =>
+        val interval = msg.substring(14).toLong
+        restart(interval)
 
-  coordActor ! PrintNodeStatus
-  Thread.sleep(5000)
+      case msg if msg.startsWith("hippo restart") =>
+        defaultRestart()
 
-  coordActor ! PrintClusterStatus
+      case _ => println("hippo command not found.")
+    }
 
 
 
-//  coordActor ! Operation(Start(Some(5000)), hConf.id)
-//  coordActor ! PrintNodeStatus
+    def register() = {
+      (coordActor ? Register(hConf)) onSuccess {
+        case EntryCmdSuccess =>
+          println("register successfully")
+        case HippoExists =>
+          println("HippoExists")
+      }
+    }
 
-//  coordActor ! Operation(Report, hConf.id)
-//  coordActor ! PrintNodeStatus
+    def showStatus() = {
+      (coordActor ? Operation(GetStatus, hConf.id)) onSuccess {
+        case hi: HippoInstance =>
+          println(hi)
+        case HippoNotFound =>
+          println("hippo not found.")
+      }
+    }
 
-//  coordActor ! Remove(hConf.host, hConf.name)
-//  coordActor ! PrintNodeStatus
+    def defaultStart() = {
+      (coordActor ? Operation(Start(), hConf.id)) onSuccess {
+        case StateCmdSuccess =>
+          println(s"Start success, interval default 30 sec.")
+        case StateCmdFailure =>
+          println("error, please check state.")
+        case HippoNotFound =>
+          println("hippo not found.")
+        case StateCmdFailure =>
+          println("command not handle.")
+      }
+    }
 
-//  Thread.sleep(10000)
+    def start(interval: Long) = {
+      val msInterval = interval * 1000
+      (coordActor ? Operation(Start(Some(msInterval)), hConf.id)) onSuccess {
+        case StateCmdSuccess =>
+          println(s"Start success, interval $interval sec.")
+        case StateCmdFailure =>
+          println("error, please check state.")
+        case HippoNotFound =>
+          println("hippo not found.")
+        case StateCmdFailure =>
+          println("command not handle.")
+      }
+    }
+
+    def stop() = {
+      (coordActor ? Operation(Stop, hConf.id)) onSuccess {
+        case StateCmdSuccess =>
+          println("Stop success.")
+        case StateCmdFailure =>
+          println("error, please check state.")
+        case HippoNotFound =>
+          println("hippo not found.")
+        case StateCmdFailure =>
+          println("command not handle.")
+      }
+    }
+
+    def restart(interval: Long) = {
+      val msInterval = interval * 1000
+      (coordActor ? Operation(Restart(Some(msInterval)), hConf.id)) onSuccess {
+        case StateCmdSuccess =>
+          println(s"Restart success, interval $interval sec.")
+        case StateCmdFailure =>
+          println("error, please check state.")
+        case HippoNotFound =>
+          println("hippo not found.")
+        case StateCmdFailure =>
+          println("command not handle.")
+      }
+    }
+
+    def defaultRestart() = {
+      (coordActor ? Operation(Restart(), hConf.id)) onSuccess {
+        case StateCmdSuccess =>
+          println("Restart success, interval default 30 sec.")
+        case StateCmdFailure =>
+          println("error, please check state.")
+        case HippoNotFound =>
+          println("hippo not found.")
+        case StateCmdFailure =>
+          println("command not handle.")
+      }
+    }
+
+
+//    (coordActor ? Register(hConf)) onSuccess {
+//      case EntryCmdSuccess =>
+//        println("register successfully")
+//      case HippoExists =>
+//        println("HippoExists")
+//    }
+//    showStatus()
+//    Thread.sleep(5000)
 //
-//  coordActor ! PrintClusterStatus
+//    println("********************starting...")
+//    (coordActor ? Operation(Start(Some(10000)), hConf.id)) onSuccess {
+//      case StateCmdSuccess =>
+//        println("Start success, interval 10s.")
+//      case StateCmdFailure =>
+//        println("error, please check state.")
+//      case HippoNotFound =>
+//        println("hippo not found.")
+//      case StateCmdFailure =>
+//        println("command not handle.")
+//    }
+//    showStatus()
+//    Thread.sleep(100000)
+//
+//    println("********************stopping...")
+//    (coordActor ? Operation(Stop, hConf.id)) onSuccess {
+//      case StateCmdSuccess =>
+//        println("Stop success.")
+//      case StateCmdFailure =>
+//        println("error, please check state.")
+//      case HippoNotFound =>
+//        println("hippo not found.")
+//      case StateCmdFailure =>
+//        println("command not handle.")
+//    }
+//    showStatus()
+//    Thread.sleep(5000)
+//
+//    println("********************starting")
+//    (coordActor ? Operation(Start(), hConf.id)) onSuccess {
+//      case StateCmdSuccess =>
+//        println("Start success, interval default 30s.")
+//      case StateCmdFailure =>
+//        println("error, please check state.")
+//      case HippoNotFound =>
+//        println("hippo not found.")
+//      case StateCmdFailure =>
+//        println("command not handle.")
+//    }
+//    showStatus()
+//    Thread.sleep(100000)
+//
+//    println("restarting")
+//    (coordActor ? Operation(Restart(Some(15000)), hConf.id)) onSuccess {
+//      case StateCmdSuccess =>
+//        println("Restart success, interval 15s.")
+//      case StateCmdFailure =>
+//        println("error, please check state.")
+//      case HippoNotFound =>
+//        println("hippo not found.")
+//      case StateCmdFailure =>
+//        println("command not handle.")
+//    }
+//    showStatus()
+//
+//    coordActor ! PrintNodeStatus
+//    Thread.sleep(5000)
+//
+//    coordActor ! PrintClusterStatus
+
+
+
+    //  coordActor ! Operation(Start(Some(5000)), hConf.id)
+    //  coordActor ! PrintNodeStatus
+
+    //  coordActor ! Operation(Report, hConf.id)
+    //  coordActor ! PrintNodeStatus
+
+    //  coordActor ! Remove(hConf.host, hConf.name)
+    //  coordActor ! PrintNodeStatus
+
+    //  Thread.sleep(10000)
+    //
+    //  coordActor ! PrintClusterStatus
+
+  }
 }
 
