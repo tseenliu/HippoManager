@@ -160,8 +160,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
         sender() ! HippoNotFound
       }
     case msg: ReportMessage =>
-      //val id = HippoConfig.generateHippoID(msg.host, msg.service_name)
-      val id = HippoConfig.generateHippoID("edge1", msg.service_name)
+      val id = HippoConfig.generateHippoID(msg.host, msg.service_name)
       if (registry.containActor(id)) {
         // TO FIX
         val rt = msg.exec_time + "000"

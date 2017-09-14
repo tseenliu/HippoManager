@@ -1,15 +1,15 @@
-package com.cathay.dtag.hippo.manager.api
+package com.cathay.dtag.hippo.manager.app
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.server.ExceptionHandler
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.ExceptionHandler
 import akka.stream.ActorMaterializer
+import com.cathay.dtag.hippo.manager.api.APIRoute
 import com.typesafe.config.ConfigFactory
+import spray.json._
 
 import scala.concurrent.ExecutionContext
-import spray.json._
-import akka.pattern.ask
 
 
 object APIServer extends App with APIRoute {

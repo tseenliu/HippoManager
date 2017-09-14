@@ -1,16 +1,18 @@
-package com.cathay.dtag.hippo.manager.core
+package com.cathay.dtag.hippo.manager.app
 
 import java.io.File
+
 import akka.pattern.ask
 import akka.util.Timeout
-
-import scala.concurrent.duration._
-import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance}
 import com.cathay.dtag.hippo.manager.conf.HippoConfig.CoordCommand._
 import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand._
 import com.cathay.dtag.hippo.manager.conf.HippoConfig.HippoCommand._
 import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response._
+import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance}
+import com.cathay.dtag.hippo.manager.core.Coordinator
 import com.typesafe.config.ConfigFactory
+
+import scala.concurrent.duration._
 
 
 object CoordApp extends App {

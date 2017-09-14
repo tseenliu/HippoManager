@@ -1,10 +1,10 @@
-package com.cathay.dtag.hippo.manager.state
+package com.cathay.dtag.hippo.manager.app
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.util.Timeout
 import akka.pattern.ask
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.HippoCommand._
-import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup, HippoInstance}
+import akka.util.Timeout
+import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup}
+import com.cathay.dtag.hippo.manager.state.{EntryStateActor, HippoStateActor}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
@@ -12,7 +12,6 @@ import scala.util.{Failure, Random, Success}
 
 object StateApp extends App {
   import HippoConfig.EntryCommand._
-  import HippoConfig.Response._
 
   val r = new Random()
   val system = ActorSystem("StateTest")

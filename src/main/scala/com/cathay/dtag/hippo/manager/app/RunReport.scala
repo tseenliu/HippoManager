@@ -1,8 +1,8 @@
-package com.cathay.dtag.hippo.manager.report
+package com.cathay.dtag.hippo.manager.app
 
 import java.io.File
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 
 /**
