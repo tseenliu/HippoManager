@@ -3,13 +3,11 @@ package com.cathay.dtag.hippo.manager.api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.ExceptionHandler
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.stream.ActorMaterializer
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand.GetNodeStatus
-import com.cathay.dtag.hippo.manager.conf._
 import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import spray.json._
 import akka.pattern.ask
 
