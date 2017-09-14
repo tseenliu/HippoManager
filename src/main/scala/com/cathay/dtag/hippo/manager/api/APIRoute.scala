@@ -53,9 +53,13 @@ trait APIRoute extends Directives with HippoJsonProtocol {
   val coordinator: ActorSelection
 
   def handleResponse(x: Any): Route = x match {
-    case EntryCmdSuccess =>
+    case EntryCmdSuccess | StateCmdSuccess =>
       complete(StatusCodes.OK, JsObject(
         "message" -> JsString("Command deliver successfully.")
+      ))
+    case StateCmdFailure =>
+      complete(StatusCodes.BadRequest, JsObject(
+        "message" -> JsString("Command failed.")
       ))
     case HippoExists =>
       complete(StatusCodes.BadRequest, JsObject(
@@ -65,7 +69,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       complete(StatusCodes.NotFound, JsObject(
         "message" -> JsString("Hippo is not found.")
       ))
-    case CmdUnhandled =>
+    case StateCmdUnhandled =>
       complete(StatusCodes.BadRequest, JsObject(
         "message" -> JsString("Command can not be handled at this state.")
       ))
@@ -84,7 +88,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       path("restart") {
         // 5. Restart hippo
         println(s"restart ${cmdParams.serviceName}")
-        val op = Operation(Restart, id)
+        val op = Operation(Restart(cmdParams.interval), id)
         onSuccess(coordinator ? op)(handleResponse)
       } ~
       path("stop") {

@@ -7,17 +7,18 @@ import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 
+import scala.util.{Failure, Random, Success}
 import scala.concurrent.duration._
-
 import com.cathay.dtag.hippo.manager.conf._
 import com.cathay.dtag.hippo.manager.state.EntryStateActor
 import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand
 import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand.GetNodeStatus
+import com.cathay.dtag.hippo.manager.report.HippoReporter
 
 
-class Coordinator extends Actor with ActorLogging {
+class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
   import HippoConfig.CoordCommand._
   import HippoConfig.Response._
 
@@ -32,6 +33,10 @@ class Coordinator extends Actor with ActorLogging {
   // entry actor
   val entry: ActorRef = context.actorOf(
     Props(new EntryStateActor(addr)), name = "entry-state")
+
+  // report actor
+  val reporter: ActorRef = context.actorOf(
+    Props(new HippoReporter(reporterConfig, entry)), name = "reporter")
 
   // distributed sync
   val replicator: ActorRef = DistributedData(context.system).replicator
@@ -104,12 +109,12 @@ class Coordinator extends Actor with ActorLogging {
 }
 
 object Coordinator {
-  def initiate(port: Int): ActorRef = {
+  def initiate(port: Int, reporterConfig: Config): ActorRef = {
     val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port")
       .withFallback(ConfigFactory.load())
 
     val system = ActorSystem("ClusterSystem", config)
 
-    system.actorOf(Props[Coordinator], name="coordinator")
+    system.actorOf(Props(new Coordinator(reporterConfig)), name="coordinator")
   }
 }

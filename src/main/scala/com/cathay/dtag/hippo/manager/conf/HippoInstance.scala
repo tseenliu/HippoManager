@@ -8,11 +8,11 @@ case class HippoInstance(conf: HippoConfig,
                          state: String) {
 
   override def toString: String = {
-    val str = s"${conf.id}, executed at ${conf.execTime}, last updated at $lastUpdateTime, now is $state"
+    val str = s"[${conf.name}@${conf.host}] SERVICE ID: ${conf.id}, CREATED: ${conf.execTime}, UPDATED: $lastUpdateTime, STATE: $state"
     if (monitorPID.isEmpty) {
       str
     } else {
-      str + s", run with pid ${monitorPID.get}"
+      str + s", PID: ${monitorPID.get}"
     }
   }
 }

@@ -8,8 +8,7 @@ case class HippoConfig(host: String,
                        name: String,
                        path: String,
                        execTime: Long=HippoConfig.getCurrentTime,
-                       maxRetries: Int=3,
-                       checkInterval: Long=HippoConfig.DEFAULT_INTERVAL) {
+                       maxRetries: Int=3) {
 
   def location: String = s"$name@$host:$path"
   val key: String = s"$name@$host"
@@ -39,12 +38,14 @@ object HippoConfig {
   object HippoCommand {
     case class Start(Interval: Option[Long]=None) extends HippoCommand
     case object Stop extends HippoCommand
-    case object Restart extends HippoCommand
-    case object Report extends HippoCommand // TODO: params about Kafka
-    case object Check extends HippoCommand
+    case class Restart(Interval: Option[Long]=None) extends HippoCommand
+    case class Report(updatedAt: Long) extends HippoCommand
+    case object ReportCheck extends HippoCommand
+    case object RemoteCheck extends HippoCommand
     case object GetStatus extends HippoCommand
     case object PrintStatus extends HippoCommand
     case object Delete extends HippoCommand
+    case object Retry extends HippoCommand
   }
 
   sealed trait EntryCommand extends ManagerCommand
@@ -68,7 +69,9 @@ object HippoConfig {
     case object HippoExists extends Response
     case object HippoNotFound extends Response
     case object EntryCmdSuccess extends Response
-    case object CmdUnhandled extends Response
+    case object StateCmdSuccess extends Response
+    case object StateCmdFailure extends Response
+    case object StateCmdUnhandled extends Response
   }
 }
 

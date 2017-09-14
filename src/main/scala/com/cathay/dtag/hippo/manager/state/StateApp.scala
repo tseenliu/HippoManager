@@ -3,7 +3,8 @@ package com.cathay.dtag.hippo.manager.state
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import akka.pattern.ask
-import com.cathay.dtag.hippo.manager.conf.HippoConfig
+import com.cathay.dtag.hippo.manager.conf.HippoConfig.HippoCommand._
+import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup, HippoInstance}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
@@ -30,73 +31,133 @@ object StateApp extends App {
 
   sleepRandom()
 
-  val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey", checkInterval = 30*1000)
+  val hConf1 = HippoConfig("edge1", "hippos.service.test1", "/Users/Tse-En/Desktop/HippoPlugin/HippoPlugin/test")
 
-  (entry ? Register(hConf)) onSuccess {
-    case EntryCmdSuccess =>
-      println("register successfully")
-    case HippoExists =>
-      println("HippoExists")
-  }
-  sleepRandom()
-
-//  (entry ? Register(hConf)) onSuccess {
+//  (entry ? Register(hConf1)) onSuccess {
 //    case EntryCmdSuccess =>
 //      println("register successfully")
 //    case HippoExists =>
 //      println("HippoExists")
 //  }
 //  sleepRandom()
-
-//  (entry ? GetNodeStatus).mapTo[Map[String, HippoInstance]].onComplete {
-//    case Success(hippos) =>
-//      hippos.foreach(println)
-//    case Failure(e) =>
-//      println(e.getMessage)
-//  }
 //
-//  entry ! Operation(Start(), hConf.id)
-//  (entry ? Operation(GetStatus, hConf.id)) onSuccess {
+//  (entry ? Register(hConf2)) onSuccess {
+//    case EntryCmdSuccess =>
+//      println("register successfully")
+//    case HippoExists =>
+//      println("HippoExists")
+//  }
+//  sleepRandom()
+//
+  (entry ? GetNodeStatus).mapTo[HippoGroup].onComplete {
+    case Success(hippos) =>
+      hippos.group.values.foreach(println)
+    case Failure(e) =>
+      println(e.getMessage)
+  }
+//  Thread.sleep(5000)
+//
+//  (entry ? Operation(Start(Some(10000)), hConf1.id)) onSuccess {
+//    case StateCmdSuccess =>
+//      println("success.")
+//    case StateCmdFailure =>
+//      println("error, please check state.")
+//    case HippoNotFound =>
+//      println("hippo not found.")
+//  }
+//  Thread.sleep(20000)
+//  (entry ? Operation(Stop, hConf1.id)) onSuccess {
+//    case StateCmdSuccess =>
+//      println("success.")
+//    case StateCmdFailure =>
+//      println("error, please check state.")
+//    case HippoNotFound =>
+//      println("hippo not found.")
+//  }
+//  Thread.sleep(5000)
+//  (entry ? Operation(Start(), hConf1.id)) onSuccess {
+//    case StateCmdSuccess =>
+//      println("success.")
+//    case StateCmdFailure =>
+//      println("error, please check state.")
+//    case HippoNotFound =>
+//      println("hippo not found.")
+//  }
+//  Thread.sleep(40000)
+//  (entry ? Operation(Restart(Some(15000)), hConf1.id)) onSuccess {
+//    case StateCmdSuccess =>
+//      println("success.")
+//    case StateCmdFailure =>
+//      println("error, please check state.")
+//    case HippoNotFound =>
+//      println("hippo not found.")
+//  }
+//  Thread.sleep(20000)
+//  (entry ? Operation(Start(), hConf1.id)) onSuccess {
+//    case StateCmdSuccess =>
+//      println("success.")
+//    case StateCmdFailure =>
+//      println("error, please check state.")
+//    case HippoNotFound =>
+//      println("hippo not found.")
+//  }
+
+//  (entry ? Operation(GetStatus, hConf1.id)) onSuccess {
 //    case hi: HippoInstance =>
 //      println(hi)
 //    case HippoNotFound =>
-//      println("register successfully")
+//      println("hippo not found.")
 //  }
+//  Thread.sleep(4000)
+//  entry ! Operation(Delete, hConf1.id)
+//
+//  (entry ? Operation(GetStatus, hConf1.id)) onSuccess {
+//    case hi: HippoInstance =>
+//      println(hi)
+//    case HippoNotFound =>
+//      println("hippo not found.")
+//  }
+//  Thread.sleep(5000)
+//
+//  (entry ? GetNodeStatus).mapTo[HippoGroup].onComplete {
+//    case Success(hippos) =>
+//      hippos.group.values.foreach(println)
+//    case Failure(e) =>
+//      println(e.getMessage)
+//  }
+
+  //  Thread.sleep(5000)
+//  (entry ? Operation(PrintStatus, hConf1.id)) onSuccess {
+//    case EntryCmdSuccess =>
+//      println("yse")
+//    case HippoNotFound =>
+//      println("no")
+//  }
+
+
 
 
 //  val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey", checkInterval = 3)
 //  val hippoFSM = createHippoActorRef(hConf)
-//
+
 //  hippoFSM ! PrintStatus
 //  sleepRandom()
-//
-//  hippoFSM ! Start()
-//  hippoFSM ! PrintStatus
+
+//  hippoFSM ! Start(Some(15000))
+//  //hippoFSM ! PrintStatus
 //  sleepRandom()
-//
+
 //  hippoFSM ! Report
 //  hippoFSM ! PrintStatus
 //  sleepRandom()
-//
-//  hippoFSM ! Restart
+
+//  hippoFSM ! Restart()
 //  hippoFSM ! PrintStatus
 //  sleepRandom()
-//
-//  hippoFSM ! Report
-//  hippoFSM ! PrintStatus
-//  sleepRandom()
-//
-//  hippoFSM ! Report
-//  hippoFSM ! PrintStatus
-//  sleepRandom()
-//
+
 //  hippoFSM ! Stop
 //  hippoFSM ! PrintStatus
 //  sleepRandom()
-//
-//  hippoFSM ! Start()
-//  hippoFSM ! PrintStatus
-//  sleepRandom()
-//
+
 //  hippoFSM ! Delete
 }
