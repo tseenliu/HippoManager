@@ -15,10 +15,10 @@ case class BashHandler(exitCode: Int, stdout: StringBuilder, stderr: StringBuild
 
 class CommandController(conf: HippoConfig) {
   private val servicePath = s"${conf.path}/${conf.name}"
-  private val startPattern = s"Monitor pid : ([0-9]+)\n${conf.name} pid : ([0-9]+)".r
-  private val restartPattern = s"Stopping Monitor successfully , whose pid is ([0-9]+)\nStopping ${conf.name} successfully , whose pid is ([0-9]+)\nMonitor pid : ([0-9]+)\n${conf.name} pid : ([0-9]+)".r
-  private val statusPattern = s"Monitor is running : ([0-9]+)\nhippos.service.test1 is running : ([0-9]+)".r
-  private val stopPattern =   s"Stopping Monitor successfully , whose pid is ([0-9]+)\nStopping ${conf.name} successfully , whose pid is ([0-9]+)".r
+  private val startPattern = s"Monitor-${conf.name} pid : ([0-9]+)\n${conf.name} pid : ([0-9]+)".r
+  private val restartPattern = s"Stopping Monitor-${conf.name} successfully , whose pid is ([0-9]+)\nStopping ${conf.name} successfully , whose pid is ([0-9]+)\nMonitor-${conf.name} pid : ([0-9]+)\n${conf.name} pid : ([0-9]+)".r
+  private val statusPattern = s"Monitor-${conf.name} is running : ([0-9]+)\n${conf.name} is running : ([0-9]+)".r
+  private val stopPattern =   s"Stopping Monitor-${conf.name} successfully , whose pid is ([0-9]+)\nStopping ${conf.name} successfully , whose pid is ([0-9]+)".r
 
   def runHippoPlugin(option: String, checkInterval: Long = 0): BashHandler = {
     val stdout = new StringBuilder

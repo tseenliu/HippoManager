@@ -27,8 +27,9 @@ object CoordApp extends App {
   Thread.sleep(11000)
 
   //val hConf = HippoConfig("edge1", "batchetl.journey", "/app/journey", checkInterval = 30*1000)
-  val hConf = HippoConfig("edge1", "hippos.service.test1", "/Users/tykuo/Developer/main/projects/cathay/HippoPlugin/test")
-
+  val hConf1 = HippoConfig("Tse-EndeMacBook-Pro.local", "recommender-prediction", "/Users/Tse-En/Desktop/happy/HippoPlugin/test/recommender_system")
+  val hConf2 = HippoConfig("Tse-EndeMacBook-Pro.local", "recommender-training", "/Users/Tse-En/Desktop/happy/HippoPlugin/test/recommender_system")
+  val hConf3 = HippoConfig("Tse-EndeMacBook-Pro.local", "recommender-evaluation", "/Users/Tse-En/Desktop/happy/HippoPlugin/test/recommender_system")
 
   println("u can type hippo command: ")
   var ok = true
@@ -65,7 +66,7 @@ object CoordApp extends App {
 
 
     def register() = {
-      (coordActor ? Register(hConf)) onSuccess {
+      (coordActor ? Register(hConf1)) onSuccess {
         case EntryCmdSuccess =>
           println("register successfully")
         case HippoExists =>
@@ -74,7 +75,7 @@ object CoordApp extends App {
     }
 
     def showStatus() = {
-      (coordActor ? Operation(GetStatus, hConf.id)) onSuccess {
+      (coordActor ? Operation(GetStatus, hConf1.id)) onSuccess {
         case hi: HippoInstance =>
           println(hi)
         case HippoNotFound =>
@@ -83,7 +84,7 @@ object CoordApp extends App {
     }
 
     def defaultStart() = {
-      (coordActor ? Operation(Start(), hConf.id)) onSuccess {
+      (coordActor ? Operation(Start(), hConf1.id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Start success, interval default 30 sec.")
         case StateCmdFailure =>
@@ -97,7 +98,7 @@ object CoordApp extends App {
 
     def start(interval: Long) = {
       val msInterval = interval * 1000
-      (coordActor ? Operation(Start(Some(msInterval)), hConf.id)) onSuccess {
+      (coordActor ? Operation(Start(Some(msInterval)), hConf1.id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Start success, interval $interval sec.")
         case StateCmdFailure =>
@@ -110,7 +111,7 @@ object CoordApp extends App {
     }
 
     def stop() = {
-      (coordActor ? Operation(Stop, hConf.id)) onSuccess {
+      (coordActor ? Operation(Stop, hConf1.id)) onSuccess {
         case StateCmdSuccess =>
           println("Stop success.")
         case StateCmdFailure =>
@@ -124,7 +125,7 @@ object CoordApp extends App {
 
     def restart(interval: Long) = {
       val msInterval = interval * 1000
-      (coordActor ? Operation(Restart(Some(msInterval)), hConf.id)) onSuccess {
+      (coordActor ? Operation(Restart(Some(msInterval)), hConf1.id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Restart success, interval $interval sec.")
         case StateCmdFailure =>
@@ -137,7 +138,7 @@ object CoordApp extends App {
     }
 
     def defaultRestart() = {
-      (coordActor ? Operation(Restart(), hConf.id)) onSuccess {
+      (coordActor ? Operation(Restart(), hConf1.id)) onSuccess {
         case StateCmdSuccess =>
           println("Restart success, interval default 30 sec.")
         case StateCmdFailure =>
