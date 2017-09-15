@@ -160,14 +160,11 @@ class EntryStateActor(addr: String) extends PersistentActor {
         sender() ! HippoNotFound
       }
     case msg: ReportMessage =>
-      //val id = HippoConfig.generateHippoID(msg.host, msg.service_name)
-      val id = HippoConfig.generateHippoID("edge1", msg.service_name)
+      val id = HippoConfig.generateHippoID(msg.host, msg.service_name)
       if (registry.containActor(id)) {
-        // TO FIX
-        val rt = msg.exec_time + "000"
         //self ! Operation(Report(rt.toLong), id)
         if (registry.containActor(id)) {
-          registry.getActor(id) ! Report(rt.toLong)
+          registry.getActor(id) ! Report(msg.exec_time.toLong)
         }
       } else {
         println(s"${msg.service_name} id not found, or actor is not running.")
