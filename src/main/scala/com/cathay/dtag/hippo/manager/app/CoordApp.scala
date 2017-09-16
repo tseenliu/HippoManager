@@ -30,6 +30,8 @@ object CoordApp extends App {
   val hConf1 = HippoConfig("Tse-EndeMacBook-Pro.local", "recommender-prediction", "/Users/Tse-En/Desktop/happy/HippoPlugin/test/recommender_system")
   val hConf2 = HippoConfig("Tse-EndeMacBook-Pro.local", "recommender-training", "/Users/Tse-En/Desktop/happy/HippoPlugin/test/recommender_system")
   val hConf3 = HippoConfig("Tse-EndeMacBook-Pro.local", "recommender-evaluation", "/Users/Tse-En/Desktop/happy/HippoPlugin/test/recommender_system")
+  val list: List[HippoConfig] = List(hConf1, hConf2, hConf3)
+  val hippoMap = Map("recommender-prediction" -> hConf1, "recommender-training" -> hConf2, "recommender-evaluation" -> hConf3)
 
   println("u can type hippo command: ")
   var ok = true
@@ -39,43 +41,55 @@ object CoordApp extends App {
 
     cmd match {
       case msg if msg.startsWith("hippo register") => register()
-      case msg if msg.startsWith("hippo show") => showStatus()
+      case msg if msg.startsWith("hippo show") =>
+        val serviceName = msg.substring(11)
+        println(serviceName)
+        showStatus(serviceName)
       case msg if msg.startsWith("hippo nodestatus") => coordActor ! PrintNodeStatus
-      //case msg if msg.startsWith("hippo clusterstatus") => coordActor ! PrintClusterStatus
-
-      case msg if msg.length > 11 && msg.startsWith("hippo start") =>
-        val interval = msg.substring(12).toLong
-        start(interval)
+      case msg if msg.startsWith("hippo clusterstatus") => coordActor ! GetClusterStatus
 
       case msg if msg.startsWith("hippo start") =>
-        defaultStart()
+        val tmp = msg.substring(12).split(" ")
+        if (tmp.length == 1) {
+          val serviceName = tmp(0)
+          defaultStart(serviceName)
+        } else if(tmp.length == 2) {
+          val serviceName = tmp(0)
+          val interval = tmp(1).toLong
+          start(serviceName, interval)
+        }
 
       case msg if msg.startsWith("hippo stop") =>
-        stop()
-
-      case msg if msg.length > 13 && msg.startsWith("hippo restart") =>
-        val interval = msg.substring(14).toLong
-        restart(interval)
+        val serviceName = msg.substring(11)
+        stop(serviceName)
 
       case msg if msg.startsWith("hippo restart") =>
-        defaultRestart()
-
+        val tmp = msg.substring(14).split(" ")
+        if (tmp.length == 1) {
+          val serviceName = tmp(0)
+          defaultRestart(serviceName)
+        } else if(tmp.length == 2) {
+          val serviceName = tmp(0)
+          val interval = tmp(1).toLong
+          restart(serviceName, interval)
+        }
       case _ => println("hippo command not found.")
     }
 
 
-
     def register() = {
-      (coordActor ? Register(hConf1)) onSuccess {
-        case EntryCmdSuccess =>
-          println("register successfully")
-        case HippoExists =>
-          println("HippoExists")
+      for (i <- 0 to 2 ) {
+        (coordActor ? Register(list(i))) onSuccess {
+          case EntryCmdSuccess =>
+            println("register successfully")
+          case HippoExists =>
+            println("HippoExists")
+        }
       }
     }
 
-    def showStatus() = {
-      (coordActor ? Operation(GetStatus, hConf1.id)) onSuccess {
+    def showStatus(serviceName: String) = {
+      (coordActor ? Operation(GetStatus, hippoMap(serviceName).id)) onSuccess {
         case hi: HippoInstance =>
           println(hi)
         case HippoNotFound =>
@@ -83,8 +97,8 @@ object CoordApp extends App {
       }
     }
 
-    def defaultStart() = {
-      (coordActor ? Operation(Start(), hConf1.id)) onSuccess {
+    def defaultStart(serviceName: String) = {
+      (coordActor ? Operation(Start(), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Start success, interval default 30 sec.")
         case StateCmdFailure =>
@@ -96,9 +110,9 @@ object CoordApp extends App {
       }
     }
 
-    def start(interval: Long) = {
+    def start(serviceName: String, interval: Long) = {
       val msInterval = interval * 1000
-      (coordActor ? Operation(Start(Some(msInterval)), hConf1.id)) onSuccess {
+      (coordActor ? Operation(Start(Some(msInterval)), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Start success, interval $interval sec.")
         case StateCmdFailure =>
@@ -110,8 +124,8 @@ object CoordApp extends App {
       }
     }
 
-    def stop() = {
-      (coordActor ? Operation(Stop, hConf1.id)) onSuccess {
+    def stop(serviceName: String) = {
+      (coordActor ? Operation(Stop, hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println("Stop success.")
         case StateCmdFailure =>
@@ -123,9 +137,9 @@ object CoordApp extends App {
       }
     }
 
-    def restart(interval: Long) = {
+    def restart(serviceName: String, interval: Long) = {
       val msInterval = interval * 1000
-      (coordActor ? Operation(Restart(Some(msInterval)), hConf1.id)) onSuccess {
+      (coordActor ? Operation(Restart(Some(msInterval)), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Restart success, interval $interval sec.")
         case StateCmdFailure =>
@@ -137,8 +151,8 @@ object CoordApp extends App {
       }
     }
 
-    def defaultRestart() = {
-      (coordActor ? Operation(Restart(), hConf1.id)) onSuccess {
+    def defaultRestart(serviceName: String) = {
+      (coordActor ? Operation(Restart(), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println("Restart success, interval default 30 sec.")
         case StateCmdFailure =>
