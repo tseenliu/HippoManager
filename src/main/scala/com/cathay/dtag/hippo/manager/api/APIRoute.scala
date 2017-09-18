@@ -81,19 +81,16 @@ trait APIRoute extends Directives with HippoJsonProtocol {
 
       path("start") {
         // 4. Start hippo
-        println(s"start ${cmdParams.serviceName}")
         val op = Operation(Start(cmdParams.interval), id)
         onSuccess(coordinator ? op)(handleResponse)
       } ~
       path("restart") {
         // 5. Restart hippo
-        println(s"restart ${cmdParams.serviceName}")
         val op = Operation(Restart(cmdParams.interval), id)
         onSuccess(coordinator ? op)(handleResponse)
       } ~
       path("stop") {
         // 6. Stop hippo
-        println(s"stop ${cmdParams.serviceName}")
         val op = Operation(Stop, id)
         onSuccess(coordinator ? op)(handleResponse)
       }
@@ -128,7 +125,14 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       pathEnd {
         (post & entity(as[HippoConfig])) { config =>
           // 1. Register hippo
-          onSuccess(coordinator ? Register(config))(handleResponse)
+          onSuccess(coordinator ? Register(config)) {
+            case EntryCmdSuccess =>
+              complete(JsObject(
+                "hippo_id" -> JsString(config.id)
+              ))
+            case x =>
+              handleResponse(x)
+          }
         } ~
         get {
           // 2. Get cluster status
