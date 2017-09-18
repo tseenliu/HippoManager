@@ -3,7 +3,7 @@ package com.cathay.dtag.hippo.manager.state
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 import HippoStateActor._
-import akka.persistence.{SaveSnapshotFailure, SaveSnapshotSuccess}
+import akka.persistence.{SaveSnapshotFailure, SaveSnapshotSuccess, SnapshotSelectionCriteria}
 import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response.{StateCmdFailure, StateCmdSuccess, StateCmdUnhandled}
 import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance}
 
@@ -250,9 +250,8 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       stay()
 
     case Event(Delete, _) =>
-      println("Delete!")
-      deleteMessages(lastSequenceNr)
-      deleteSnapshot(lastSequenceNr)
+      (1L to lastSequenceNr) foreach(deleteMessages(_))
+      deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
       stop()
 
     case Event(SaveSnapshotSuccess(metadata), _) ⇒

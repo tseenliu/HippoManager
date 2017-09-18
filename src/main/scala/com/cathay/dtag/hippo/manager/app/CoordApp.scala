@@ -40,7 +40,7 @@ object CoordApp extends App {
     ok = cmd != null
 
     cmd match {
-      case msg if msg.startsWith("hippo delete") => coordActor ! Operation(Delete, hippoMap(msg.substring(13)).id)
+      case msg if msg.startsWith("hippo delete") => coordActor ! Remove(hippoMap(msg.substring(13)).id)
       case msg if msg.startsWith("hippo register") => register()
       case msg if msg.startsWith("hippo show") =>
         val serviceName = msg.substring(11)
@@ -78,7 +78,7 @@ object CoordApp extends App {
 
 
     def register() = {
-      for (i <- 0 to 2 ) {
+      for (i <- 0 to list.length-1 ) {
         (coordActor ? Register(list(i))) onSuccess {
           case EntryCmdSuccess =>
             println("register successfully")
