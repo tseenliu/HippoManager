@@ -40,13 +40,13 @@ object CoordApp extends App {
     ok = cmd != null
 
     cmd match {
+      case msg if msg.startsWith("hippo delete") => coordActor ! Operation(Delete, hippoMap(msg.substring(13)).id)
       case msg if msg.startsWith("hippo register") => register()
       case msg if msg.startsWith("hippo show") =>
         val serviceName = msg.substring(11)
         println(serviceName)
         showStatus(serviceName)
       case msg if msg.startsWith("hippo nodestatus") => coordActor ! PrintNodeStatus
-      case msg if msg.startsWith("hippo clusterstatus") => coordActor ! GetClusterStatus
 
       case msg if msg.startsWith("hippo start") =>
         val tmp = msg.substring(12).split(" ")

@@ -167,7 +167,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
           registry.getActor(id) ! Report(msg.exec_time.toLong)
         }
       } else {
-        println(s"${msg.service_name} id not found, or actor is not running.")
+        println(s"${msg.service_name} not register, or state actor is not running.")
       }
 
   }
