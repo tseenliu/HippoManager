@@ -100,10 +100,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   def checkNotFound(updatedAt: Long, checkInterval: Long): Boolean = {
     val ct = getCurrentTime
     val realInterval = ct - updatedAt
-//    println(s"ct: $ct")
-//    println(s"ut: $updatedAt")
-//    println(s"real: $realInterval")
-//    println(s"expect: $checkInterval")
     realInterval > checkInterval
   }
 
@@ -120,7 +116,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
 
   def getCurrentCheckInterval(bufferTime: Int = 1500) = {
     val ct = stateData.interval + bufferTime
-    println(s"ct: $ct")
     FiniteDuration(stateData.interval + bufferTime, MILLISECONDS)
   }
 
@@ -143,6 +138,11 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       } else {
         goto(Dead) applying RunFail(Some(checkInterval))
       }
+    case Event(Delete, _) =>
+      (1L to lastSequenceNr) foreach(deleteMessages(_))
+      deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
+      sender() ! StateCmdSuccess
+      stop()
   }
 
   when(Running) {
@@ -230,6 +230,11 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         saveSnapshot()
         self ! Start(interval)
       }
+    case Event(Delete, _) =>
+      (1L to lastSequenceNr) foreach(deleteMessages(_))
+      deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
+      sender() ! StateCmdSuccess
+      stop()
   }
 
   onTransition {
@@ -248,11 +253,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     case Event(PrintStatus, _) =>
       println(currentInst)
       stay()
-
-    case Event(Delete, _) =>
-      (1L to lastSequenceNr) foreach(deleteMessages(_))
-      deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
-      stop()
 
     case Event(SaveSnapshotSuccess(metadata), _) ⇒
       stay()

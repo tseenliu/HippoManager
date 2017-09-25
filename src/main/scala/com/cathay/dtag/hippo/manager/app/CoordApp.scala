@@ -40,11 +40,13 @@ object CoordApp extends App {
     ok = cmd != null
 
     cmd match {
-      case msg if msg.startsWith("hippo delete") => coordActor ! Remove(hippoMap(msg.substring(13)).id)
+      case msg if msg.startsWith("hippo delete") =>
+        //coordActor ! Remove(hippoMap(msg.substring(13)).id)
+        val serviceName = msg.substring(13)
+        remove(serviceName)
       case msg if msg.startsWith("hippo register") => register()
       case msg if msg.startsWith("hippo show") =>
         val serviceName = msg.substring(11)
-        println(serviceName)
         showStatus(serviceName)
       case msg if msg.startsWith("hippo nodestatus") => coordActor ! PrintNodeStatus
 
@@ -94,6 +96,17 @@ object CoordApp extends App {
           println(hi)
         case HippoNotFound =>
           println("hippo not found.")
+      }
+    }
+
+    def remove(serviceName: String) = {
+      (coordActor ? Remove(hippoMap(serviceName).id)) onSuccess {
+        case EntryCmdSuccess =>
+          println("remove successfully")
+        case HippoExists =>
+          println("HippoExists")
+        case StateCmdUnhandled =>
+          println("command not handle.")
       }
     }
 

@@ -4,7 +4,6 @@ import akka.actor.{ActorRef, Props}
 import akka.persistence.{PersistentActor, RecoveryCompleted, SnapshotOffer}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-
 import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup, HippoInstance}
 import com.cathay.dtag.hippo.manager.report.ReportMessage
 
@@ -126,15 +125,22 @@ class EntryStateActor(addr: String) extends PersistentActor {
       }
 
     case Remove(id) =>
+      implicit val timeout = Timeout(5 seconds)
+      val parent = sender()
       if (registry.hasRegistered(id)) {
-        persist(HippoRemoved(id)) { evt =>
-          registry.getActor(id) ! Delete
-          updateRepo(evt)
-          sender() ! EntryCmdSuccess
+        (registry.getActor(id) ? Delete) onSuccess {
+          case StateCmdSuccess =>
+            persist(HippoRemoved(id)) { evt =>
+              updateRepo(evt)
+              parent ! EntryCmdSuccess
+            }
+          case x @ StateCmdUnhandled=>
+            parent ! x
         }
       } else {
-        sender() ! HippoNotFound
+        parent ! HippoNotFound
       }
+
     case GetNodeStatus =>
       // TODO: Cache result
       implicit val timeout = Timeout(5 seconds)
