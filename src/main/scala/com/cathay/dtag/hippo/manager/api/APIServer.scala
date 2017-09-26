@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import com.cathay.dtag.hippo.manager.app.Boot.getConfig
+import com.cathay.dtag.hippo.manager.coord.Coordinator.configDir
 import com.cathay.dtag.hippo.manager.core.env.EnvLoader
 import com.typesafe.config.Config
 
@@ -12,6 +13,7 @@ import scala.concurrent.ExecutionContext
 
 object APIServer extends EnvLoader {
   def main(args: Array[String]): Unit = {
+    configDir = if (args.length > 0) args(0) else "config"
     val clusterConfig = getConfig("cluster")
     val serviceConfig = getConfig("service").resolve()
     val server = new APIServer(clusterConfig, serviceConfig)
