@@ -1,7 +1,8 @@
 package com.cathay.dtag.hippo.manager.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import com.cathay.dtag.hippo.manager.conf._
+import com.cathay.dtag.hippo.manager.core._
+import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 import spray.json._
 
 

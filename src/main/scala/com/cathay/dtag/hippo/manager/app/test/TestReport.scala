@@ -1,4 +1,4 @@
-package com.cathay.dtag.hippo.manager.app
+package com.cathay.dtag.hippo.manager.app.test
 
 import java.io.File
 
@@ -8,7 +8,7 @@ import com.typesafe.config.ConfigFactory
 /**
   * Created by Tse-En on 2017/9/7.
   */
-object RunReport extends App {
+object TestReport extends App {
 
   //val configPath = args(0)
   //val reporterConfig = ConfigFactory.parseFile(new File(configPath))

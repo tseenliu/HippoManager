@@ -1,28 +1,29 @@
-package com.cathay.dtag.hippo.manager.app
+package com.cathay.dtag.hippo.manager.app.test
 
-import java.io.File
 
-import akka.pattern.ask
 import akka.util.Timeout
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.CoordCommand._
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand._
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.HippoCommand._
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response._
-import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance}
-import com.cathay.dtag.hippo.manager.core.Coordinator
-import com.typesafe.config.ConfigFactory
+import akka.pattern.ask
+
+import com.cathay.dtag.hippo.manager.coord.Coordinator
+import com.cathay.dtag.hippo.manager.core.env.EnvLoader
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.CoordCommand._
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.EntryCommand._
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.HippoCommand._
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.Response._
+import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoInstance}
 
 import scala.concurrent.duration._
 
 
-object CoordApp extends App {
+object TestCoord extends App with EnvLoader {
   import scala.concurrent.ExecutionContext.Implicits.global
   implicit val timeout = Timeout(5 seconds)
 
-  //val configPath = args(0)
-  //val reporterConfig = ConfigFactory.parseFile(new File(configPath))
-  val reporterConfig = ConfigFactory.parseFile(new File("config/reporter.conf"))
-  val coordActor = Coordinator.initiate(2551, reporterConfig)
+  configDir = if (args.length > 0) args(0) else "config"
+
+  val coordConfig = getConfig("coordinator")
+  val reporterConfig = getConfig("reporter")
+  val coordActor = Coordinator.initiate(coordConfig, reporterConfig)
 
   Thread.sleep(11000)
 
@@ -178,3 +179,4 @@ object CoordApp extends App {
     }
   }
 }
+

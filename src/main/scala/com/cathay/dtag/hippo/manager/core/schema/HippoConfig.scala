@@ -1,5 +1,4 @@
-package com.cathay.dtag.hippo.manager.conf
-
+package com.cathay.dtag.hippo.manager.core.schema
 
 import java.security.MessageDigest
 

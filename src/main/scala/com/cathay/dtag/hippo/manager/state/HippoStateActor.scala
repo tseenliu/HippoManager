@@ -4,8 +4,8 @@ import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 import HippoStateActor._
 import akka.persistence.{SaveSnapshotFailure, SaveSnapshotSuccess, SnapshotSelectionCriteria}
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.Response.{StateCmdFailure, StateCmdSuccess, StateCmdUnhandled}
-import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoInstance}
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.Response.{StateCmdFailure, StateCmdSuccess, StateCmdUnhandled}
+import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoInstance}
 
 import scala.reflect.ClassTag
 import scala.reflect._

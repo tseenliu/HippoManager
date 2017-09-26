@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, Props}
 import akka.persistence.{PersistentActor, RecoveryCompleted, SnapshotOffer}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup, HippoInstance}
+import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 import com.cathay.dtag.hippo.manager.report.ReportMessage
 
 import scala.concurrent.Future

@@ -1,4 +1,4 @@
-package com.cathay.dtag.hippo.manager.core
+package com.cathay.dtag.hippo.manager.coord
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 import akka.cluster.Cluster
@@ -7,20 +7,34 @@ import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import com.typesafe.config.{Config, ConfigFactory}
+import com.cathay.dtag.hippo.manager.core.env.EnvLoader
+import com.typesafe.config.Config
 
-import scala.util.{Failure, Random, Success}
 import scala.concurrent.duration._
-import com.cathay.dtag.hippo.manager.conf._
 import com.cathay.dtag.hippo.manager.state.EntryStateActor
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand
-import com.cathay.dtag.hippo.manager.conf.HippoConfig.EntryCommand.GetNodeStatus
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.EntryCommand
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.EntryCommand.GetNodeStatus
+import com.cathay.dtag.hippo.manager.core.schema.{HippoGroup, HippoInstance}
 import com.cathay.dtag.hippo.manager.report.HippoReporter
 
 
+object Coordinator extends EnvLoader {
+  def initiate(coordConfig: Config,
+               reporterConfig: Config): ActorRef = {
+
+    val system = ActorSystem("ClusterSystem", coordConfig)
+    system.actorOf(Props(new Coordinator(reporterConfig)), name="coordinator")
+  }
+
+  def main(args: Array[String]): Unit = {
+    val coordConfig = getConfig("coordinator").resolve()
+    val reporterConfig = getConfig("reporter")
+    Coordinator.initiate(coordConfig, reporterConfig)
+  }
+}
+
 class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
-  import HippoConfig.CoordCommand._
-  import HippoConfig.Response._
+  import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.CoordCommand._
 
   // concurrent related
   import context.dispatcher
@@ -108,13 +122,4 @@ class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
   }
 }
 
-object Coordinator {
-  def initiate(port: Int, reporterConfig: Config): ActorRef = {
-    val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port")
-      .withFallback(ConfigFactory.load())
 
-    val system = ActorSystem("ClusterSystem", config)
-
-    system.actorOf(Props(new Coordinator(reporterConfig)), name="coordinator")
-  }
-}

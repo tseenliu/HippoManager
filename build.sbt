@@ -1,10 +1,12 @@
 name := "HippoManager"
 
-version := "1.0"
+version := "0.1"
 
 scalaVersion := "2.11.8"
 
 resolvers += Resolver.bintrayRepo("cakesolutions", "maven")
+
+enablePlugins(JavaAppPackaging)
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.5.3",

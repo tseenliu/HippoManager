@@ -1,6 +1,6 @@
 package com.cathay.dtag.hippo.manager.state
 
-import com.cathay.dtag.hippo.manager.conf.HippoConfig
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig
 
 import scala.util.Random
 import sys.process._

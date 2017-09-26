@@ -6,12 +6,11 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.pattern.ask
-import com.cathay.dtag.hippo.manager.conf.{HippoConfig, HippoGroup, HippoInstance}
+import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-
 import spray.json._
 
 /**
