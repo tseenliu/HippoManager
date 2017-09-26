@@ -13,7 +13,7 @@ import com.typesafe.config.Config
 import scala.concurrent.duration._
 import com.cathay.dtag.hippo.manager.state.EntryStateActor
 import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.EntryCommand
-import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.EntryCommand.GetNodeStatus
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.EntryCommand._
 import com.cathay.dtag.hippo.manager.core.schema.{HippoGroup, HippoInstance}
 import com.cathay.dtag.hippo.manager.report.HippoReporter
 

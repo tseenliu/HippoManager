@@ -74,25 +74,22 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       ))
   }
 
-  def commandRoute: Route =
-    (post & entity(as[CommandParams])) { cmdParams =>
-      val id = HippoConfig.generateHippoID(cmdParams.host, cmdParams.serviceName)
-
-      path("start") {
-        // 4. Start hippo
-        val op = Operation(Start(cmdParams.interval), id)
-        onSuccess(coordinator ? op)(handleResponse)
-      } ~
-      path("restart") {
-        // 5. Restart hippo
-        val op = Operation(Restart(cmdParams.interval), id)
-        onSuccess(coordinator ? op)(handleResponse)
-      } ~
-      path("stop") {
-        // 6. Stop hippo
-        val op = Operation(Stop, id)
-        onSuccess(coordinator ? op)(handleResponse)
-      }
+  def commandRoute(id: String, interval: Option[Long]): Route =
+    path("start") {
+      println(id, interval)
+      // 4. Start hippo
+      val op = Operation(Start(interval), id)
+      onSuccess(coordinator ? op)(handleResponse)
+    } ~
+    path("restart") {
+      // 5. Restart hippo
+      val op = Operation(Restart(interval), id)
+      onSuccess(coordinator ? op)(handleResponse)
+    } ~
+    path("stop") {
+      // 6. Stop hippo
+      val op = Operation(Stop, id)
+      onSuccess(coordinator ? op)(handleResponse)
     }
 
   def instanceRoute(id: String): Route = {
@@ -119,7 +116,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
     }
   }
 
-  val route =
+  def route =
     pathPrefix("hippo" / version / "services") {
       pathEnd {
         (post & entity(as[HippoConfig])) { config =>
@@ -148,13 +145,23 @@ trait APIRoute extends Directives with HippoJsonProtocol {
             (coordinator ? GetNodeStatus).mapTo[HippoGroup]
           }
         }
-      } ~ commandRoute ~
+      } ~
       pathPrefix("host" / Segment / "name" / Segment) { (host, name) =>
         val id = HippoConfig.generateHippoID(host, name)
         instanceRoute(id)
       } ~
       pathPrefix("instances" / Segment) { id =>
-        instanceRoute(id)
+        instanceRoute(id) ~
+        (post & entity(as[JsValue])) { json =>
+          val value = json.asJsObject.fields.get("interval")
+          val interval = value.map(_.convertTo[Long])
+          println(interval)
+          commandRoute(id, interval)
+        }
+      } ~
+      (post & entity(as[CommandParams])) { cmdParams =>
+        val id = HippoConfig.generateHippoID(cmdParams.host, cmdParams.serviceName)
+        commandRoute(id, cmdParams.interval)
       }
     }
 }

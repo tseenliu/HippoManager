@@ -3,8 +3,6 @@ package com.cathay.dtag.hippo.manager.api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import com.cathay.dtag.hippo.manager.app.Boot.getConfig
-import com.cathay.dtag.hippo.manager.coord.Coordinator.configDir
 import com.cathay.dtag.hippo.manager.core.env.EnvLoader
 import com.typesafe.config.Config
 
@@ -34,6 +32,8 @@ class APIServer(clusterConfig: Config,
   val server = serviceConfig.getConfig("api")
   val host = server.getString("host")
   val port = server.getInt("port")
+  override val version: String = server.getString("version")
+  println(version)
 
 
   def run: Unit = {
