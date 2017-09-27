@@ -47,7 +47,7 @@ object HippoStateActor {
     val timestamp: Long = getCurrentTime
   }
   case class RunSuccess(monitorPID: Int, interval: Long) extends HippoEvent
-  case class RunFail(interval: Option[Long]=None) extends HippoEvent
+  case class RunFail(interval: Long) extends HippoEvent
   case class KillSuccess() extends HippoEvent
   case class Confirm(isRunning: Boolean) extends HippoEvent
   case object Found extends HippoEvent
@@ -87,7 +87,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       case (KillSuccess() | Confirm(false)) =>
         Program(currData.interval, evt.timestamp)
       case RunFail(interval) =>
-        Program(interval.get, evt.timestamp, currData.retry + 1)
+        Program(interval, evt.timestamp, currData.retry + 1)
       case GiveUp() =>
         Program(currData.interval, evt.timestamp)
       case Reset() =>
@@ -136,7 +136,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
           sender() ! StateCmdSuccess
         }
       } else {
-        goto(Dead) applying RunFail(Some(checkInterval))
+        goto(Dead) applying RunFail(checkInterval)
       }
     case Event(Delete, _) =>
       (1L to lastSequenceNr) foreach(deleteMessages(_))
@@ -167,7 +167,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         }
       } else {
         cancelTimer(CHECK_TIMER)
-        goto(Dead) applying RunFail()
+        goto(Dead) applying RunFail(checkInterval)
       }
     case Event(Report(updatedAt), _) =>
       //println(s"Receive Report command at $updatedAt")
@@ -214,7 +214,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
             sender() ! StateCmdSuccess
           }
         } else {
-          stay applying RunFail(Some(interval)) andThen { _ =>
+          stay applying RunFail(interval) andThen { _ =>
             self ! Retry
           }
         }
