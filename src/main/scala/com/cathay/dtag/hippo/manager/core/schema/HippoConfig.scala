@@ -70,7 +70,7 @@ object HippoConfig {
     case object EntryCmdSuccess extends Response
     case object StateCmdSuccess extends Response
     case object StateCmdFailure extends Response
-    case object StateCmdUnhandled extends Response
+    case class StateCmdUnhandled(currentState: String) extends Response
   }
 }
 

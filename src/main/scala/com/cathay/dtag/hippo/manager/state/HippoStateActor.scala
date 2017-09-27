@@ -262,7 +262,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       stay()
 
     case Event(msg, _) =>
-      sender() ! StateCmdUnhandled
+      sender() ! StateCmdUnhandled(stateName.identifier)
       stay()
   }
 }

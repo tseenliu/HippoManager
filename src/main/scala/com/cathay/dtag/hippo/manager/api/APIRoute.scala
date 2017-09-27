@@ -11,32 +11,8 @@ import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, Hippo
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 import spray.json._
 
-/**
-  *** Service API
-  * # Prefix
-  * /hippo/[version]/services
-  *
-  * # Routes
-  * 1. Register hippo:
-  *   POST /
-  * 2. Get cluster status:
-  *   GET  /
-  * 3. Get node status:
-  *   GET  /node
-  * 4. Start hippo
-  *   POST /start
-  * 5. Restart hippo
-  *   POST /restart
-  * 6. Stop hippo
-  *   POST /stop
-  * 7. Get hippo status:
-  *   GET  /host/:host/name/:name
-  * 8. Remove hippo
-  *   DELETE /host/:host/name/:name
-  */
 
 trait APIRoute extends Directives with HippoJsonProtocol {
   import HippoConfig.CoordCommand._
@@ -69,9 +45,10 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       complete(StatusCodes.NotFound, JsObject(
         "message" -> JsString("Hippo is not found.")
       ))
-    case StateCmdUnhandled =>
+    case StateCmdUnhandled(currentState) =>
       complete(StatusCodes.BadRequest, JsObject(
-        "message" -> JsString("Command can not be handled at this state.")
+        "message" -> JsString("Command can not be handled at this state."),
+        "currentState" -> JsString(currentState)
       ))
   }
 
