@@ -2,9 +2,12 @@ package com.cathay.dtag.hippo.manager.api
 
 import akka.actor.{ActorRef, ActorSelection, ActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.ExceptionHandler
 import akka.stream.ActorMaterializer
 import com.cathay.dtag.hippo.manager.core.env.EnvLoader
 import com.typesafe.config.Config
+import spray.json.{JsObject, JsString}
 
 import scala.concurrent.ExecutionContext
 
@@ -33,8 +36,14 @@ class APIServer(clusterConfig: Config,
   val host: String = server.getString("host")
   val port: Int = server.getInt("port")
   override val version: String = server.getString("version")
-  println(version)
 
+  implicit def exceptionHandler: ExceptionHandler =
+    ExceptionHandler {
+      case ex =>
+        complete(StatusCodes.InternalServerError, JsObject(
+          "message" -> JsString(ex.getMessage)
+        ))
+    }
 
   def run: Unit = {
     val bindingFuture = Http().bindAndHandle(route, host, port)
