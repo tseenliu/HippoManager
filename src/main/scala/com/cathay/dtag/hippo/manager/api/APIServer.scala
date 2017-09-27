@@ -1,6 +1,6 @@
 package com.cathay.dtag.hippo.manager.api
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSelection, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import com.cathay.dtag.hippo.manager.core.env.EnvLoader
@@ -26,12 +26,12 @@ class APIServer(clusterConfig: Config,
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
   override implicit val ec: ExecutionContext = system.dispatcher
 
-  val coordAddr = serviceConfig.getString("coordinator.address")
-  val coordinator = system.actorSelection(s"$coordAddr/user/coordinator")
+  val coordAddr: String = serviceConfig.getString("coordinator.address")
+  def coordinator: ActorSelection = system.actorSelection(s"$coordAddr/user/coordinator")
 
-  val server = serviceConfig.getConfig("api")
-  val host = server.getString("host")
-  val port = server.getInt("port")
+  val server: Config = serviceConfig.getConfig("api")
+  val host: String = server.getString("host")
+  val port: Int = server.getInt("port")
   override val version: String = server.getString("version")
   println(version)
 

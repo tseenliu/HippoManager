@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.pattern.ask
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.{EntryCommand, HippoCommand}
 import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 
 import scala.concurrent.duration._
@@ -49,7 +50,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
   implicit val timeout = Timeout(5 seconds)
   val version = "v1.0.0"
 
-  val coordinator: ActorSelection
+  def coordinator: ActorSelection
 
   def handleResponse(x: Any): Route = x match {
     case EntryCmdSuccess | StateCmdSuccess =>
@@ -74,22 +75,37 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       ))
   }
 
+  def executeCommand(id: String, cmd: EntryCommand) = {
+    val future = (coordinator ? cmd).flatMap {
+      case EntryCmdSuccess | StateCmdSuccess =>
+        coordinator ? Operation(GetStatus, id)
+      case x =>
+        Future(x)
+    }
+
+    onSuccess(future) {
+      case instance: HippoInstance =>
+        complete(instance)
+      case x =>
+        handleResponse(x)
+    }
+  }
+
   def commandRoute(id: String, interval: Option[Long]): Route =
     path("start") {
-      println(id, interval)
       // 4. Start hippo
-      val op = Operation(Start(interval), id)
-      onSuccess(coordinator ? op)(handleResponse)
+      val cmd = Operation(Start(interval), id)
+      executeCommand(id, cmd)
     } ~
     path("restart") {
       // 5. Restart hippo
-      val op = Operation(Restart(interval), id)
-      onSuccess(coordinator ? op)(handleResponse)
+      val cmd = Operation(Restart(interval), id)
+      executeCommand(id, cmd)
     } ~
     path("stop") {
       // 6. Stop hippo
-      val op = Operation(Stop, id)
-      onSuccess(coordinator ? op)(handleResponse)
+      val cmd = Operation(Stop, id)
+      executeCommand(id, cmd)
     }
 
   def instanceRoute(id: String): Route = {
@@ -123,7 +139,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
           // 1. Register hippo
           onSuccess(coordinator ? Register(config)) {
             case EntryCmdSuccess =>
-              complete(JsObject(
+              complete(StatusCodes.Created, JsObject(
                 "hippo_id" -> JsString(config.id)
               ))
             case x =>
