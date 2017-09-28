@@ -22,7 +22,8 @@ object Coordinator extends EnvLoader {
   def initiate(coordConfig: Config,
                reporterConfig: Config): ActorRef = {
 
-    val system = ActorSystem("ClusterSystem", coordConfig)
+    val sysName = coordConfig.getString("system-name")
+    val system = ActorSystem(sysName, coordConfig)
     system.actorOf(Props(new Coordinator(reporterConfig)), name="coordinator")
   }
 

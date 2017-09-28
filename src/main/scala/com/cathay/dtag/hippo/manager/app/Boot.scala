@@ -31,8 +31,8 @@ object Boot extends App with EnvLoader {
       val reporterConfig = getConfig("reporter")
       Coordinator.initiate(coordConfig, reporterConfig)
     case ServiceType.API =>
-      val clusterConfig = getConfig("cluster")
-      val serviceConfig = getConfig("service").resolve()
+      val clusterConfig = getConfig("cluster").resolve()
+      val serviceConfig = getConfig("service")
       val server = new APIServer(clusterConfig, serviceConfig)
       server.run
     case _ =>

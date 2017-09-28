@@ -15,8 +15,8 @@ import scala.concurrent.ExecutionContext
 object APIServer extends EnvLoader {
   def main(args: Array[String]): Unit = {
     configDir = if (args.length > 0) args(0) else "config"
-    val clusterConfig = getConfig("cluster")
-    val serviceConfig = getConfig("service").resolve()
+    val clusterConfig = getConfig("cluster").resolve()
+    val serviceConfig = getConfig("service")
     val server = new APIServer(clusterConfig, serviceConfig)
     server.run
   }
@@ -25,13 +25,22 @@ object APIServer extends EnvLoader {
 class APIServer(clusterConfig: Config,
                 serviceConfig: Config) extends APIRoute {
 
-  override implicit val system = ActorSystem("ClusterSystem", clusterConfig)
+  val sysName = clusterConfig.getString("system-name")
+  override implicit val system = ActorSystem(sysName, clusterConfig)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
   override implicit val ec: ExecutionContext = system.dispatcher
 
-  val coordAddr: String = serviceConfig.getString("coordinator.address")
+  // Coordinator setting
+  def setCoordAddr: String = {
+    val coord: Config = serviceConfig.getConfig("coordinator")
+    val host: String = coord.getString("host")
+    val port: Int = coord.getInt("port")
+    s"akka.tcp://$sysName@$host:$port"
+  }
+  val coordAddr: String = setCoordAddr
   def coordinator: ActorSelection = system.actorSelection(s"$coordAddr/user/coordinator")
 
+  // API setting
   val server: Config = serviceConfig.getConfig("api")
   val host: String = server.getString("host")
   val port: Int = server.getInt("port")
