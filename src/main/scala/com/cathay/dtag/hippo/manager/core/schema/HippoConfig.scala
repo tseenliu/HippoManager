@@ -35,7 +35,7 @@ object HippoConfig {
 
   sealed trait HippoCommand extends ManagerCommand
   object HippoCommand {
-    case class Start(Interval: Option[Long]=None) extends HippoCommand
+    case class Start(interval: Option[Long]=None) extends HippoCommand
     case object Stop extends HippoCommand
     case class Restart(Interval: Option[Long]=None) extends HippoCommand
     case class Report(updatedAt: Long) extends HippoCommand
@@ -45,6 +45,7 @@ object HippoConfig {
     case object PrintStatus extends HippoCommand
     case object Delete extends HippoCommand
     case object Retry extends HippoCommand
+    case class Revive(monitorPID: Int, interval: Option[Long]=None) extends HippoCommand
   }
 
   sealed trait EntryCommand extends ManagerCommand

@@ -62,7 +62,8 @@ object EntryStateActor {
   }
 }
 
-class EntryStateActor(addr: String) extends PersistentActor {
+class EntryStateActor(coordAddress: String) extends PersistentActor {
+
   import EntryStateActor._
   import HippoConfig.HippoCommand._
   import HippoConfig.EntryCommand._
@@ -87,14 +88,13 @@ class EntryStateActor(addr: String) extends PersistentActor {
     case HippoAdded(conf) if !registry.containActor(conf) =>
       val actor = createActor(conf)
       registry = registry.addOne(conf, Some(actor))
-      println(s"repoCount: ${registry.count}")
       takeSnapShot()
     case HippoRemoved(id) if registry.hasRegistered(id) =>
       registry = registry.remove(id)
       takeSnapShot()
   }
 
-  override def persistenceId = addr
+  override def persistenceId = coordAddress
 
   override def receiveRecover = {
     case evt @ HippoAdded(config) if !registry.containActor(config) =>
@@ -148,7 +148,7 @@ class EntryStateActor(addr: String) extends PersistentActor {
           (actor ? GetStatus).mapTo[HippoInstance]
         }.map { list =>
           list.map(inst => inst.conf.id -> inst).toMap
-        }.map(x => HippoGroup(addr, x))
+        }.map(x => HippoGroup(coordAddress, x))
 
       futureList pipeTo sender()
     case Operation(cmd, id) =>
@@ -163,7 +163,15 @@ class EntryStateActor(addr: String) extends PersistentActor {
       if (registry.containActor(id)) {
         registry.getActor(id) ! Report(msg.exec_time.toLong)
       } else {
-        println(s"${msg.service_name} not register, or state actor is not running.")
+        // TODO: check (this.coordAddress == msg.coordAddress)
+        //println(s"${msg.service_name} not register, or state actor is not running.")
+        val conf = HippoConfig(msg.host, msg.service_name, msg.path)
+        val id = conf.id
+        persist(HippoAdded(conf)) { evt =>
+          updateRepo(evt)
+          // TODO: get pid and checkInterval from msg
+          registry.getActor(id) ! Revive(msg.monitor_pid.toInt)
+        }
       }
   }
 }

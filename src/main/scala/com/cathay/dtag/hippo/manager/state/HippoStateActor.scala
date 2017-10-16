@@ -138,8 +138,14 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       } else {
         goto(Dead) applying RunFail(checkInterval)
       }
+    case Event(Revive(pid, interval), _) =>
+      val checkInterval = interval.getOrElse(HippoConfig.DEFAULT_INTERVAL)
+      goto(Running) applying RunSuccess(pid, checkInterval) andThen { _ =>
+        setTimer(CHECK_TIMER, ReportCheck, getCurrentCheckInterval(), repeat = true)
+        saveStateSnapshot()
+      }
     case Event(Delete, _) =>
-      (1L to lastSequenceNr) foreach(deleteMessages(_))
+      (1L to lastSequenceNr) foreach deleteMessages
       deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
       sender() ! StateCmdSuccess
       stop()
@@ -231,7 +237,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         self ! Start(interval)
       }
     case Event(Delete, _) =>
-      (1L to lastSequenceNr) foreach(deleteMessages(_))
+      (1L to lastSequenceNr) foreach deleteMessages
       deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
       sender() ! StateCmdSuccess
       stop()
