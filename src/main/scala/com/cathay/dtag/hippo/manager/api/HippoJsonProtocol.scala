@@ -1,7 +1,6 @@
 package com.cathay.dtag.hippo.manager.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import com.cathay.dtag.hippo.manager.core._
 import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 import spray.json._
 
@@ -66,14 +65,14 @@ trait HippoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object GroupFormat extends RootJsonFormat[HippoGroup] {
     override def write(obj: HippoGroup): JsValue = {
       JsObject(
-        "nodeAddress" -> JsString(obj.nodeAddress),
+        "coordAddr" -> JsString(obj.nodeAddress),
         "snapshotTime" -> JsNumber(obj.createdAt),
         "instances" -> JsArray(obj.group.values.map(_.toJson).toSeq: _*)
       )
     }
 
     override def read(json: JsValue): HippoGroup = {
-      val address = json.asJsObject.fields("nodeAddress")
+      val address = json.asJsObject.fields("coordAddr")
         .convertTo[String]
       val group = json.asJsObject.fields("instances")
         .convertTo[Seq[HippoInstance]]

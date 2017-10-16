@@ -38,7 +38,6 @@ class APIServer(clusterConfig: Config,
     s"akka.tcp://$sysName@$host:$port"
   }
   val coordAddr: String = setCoordAddr
-  def coordinator: ActorSelection = system.actorSelection(s"$coordAddr/user/coordinator")
 
   // API setting
   val server: Config = serviceConfig.getConfig("api")

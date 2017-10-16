@@ -24,9 +24,11 @@ trait APIRoute extends Directives with HippoJsonProtocol {
   implicit val materializer: ActorMaterializer
   implicit val ec: ExecutionContext
   implicit val timeout = Timeout(5 seconds)
-  val version = "v1.0.0"
+  val version: String
 
-  def coordinator: ActorSelection
+  val coordAddr: String
+  def coordinator: ActorSelection =
+    system.actorSelection(s"$coordAddr/user/coordinator")
 
   def handleResponse(x: Any): Route = x match {
     case EntryCmdSuccess | StateCmdSuccess =>
@@ -117,7 +119,8 @@ trait APIRoute extends Directives with HippoJsonProtocol {
           onSuccess(coordinator ? Register(config)) {
             case EntryCmdSuccess =>
               complete(StatusCodes.Created, JsObject(
-                "hippo_id" -> JsString(config.id)
+                "id" -> JsString(config.id),
+                "coordAddr" -> JsString(this.coordAddr)
               ))
             case x =>
               handleResponse(x)
