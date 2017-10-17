@@ -151,7 +151,6 @@ trait APIRoute extends Directives with HippoJsonProtocol {
         (post & entity(as[JsValue])) { json =>
           val value = json.asJsObject.fields.get("interval")
           val interval = value.map(_.convertTo[Long])
-          println(interval)
           commandRoute(id, interval)
         }
       } ~

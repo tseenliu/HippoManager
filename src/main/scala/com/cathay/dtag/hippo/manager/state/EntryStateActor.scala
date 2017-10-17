@@ -164,7 +164,7 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
         registry.getActor(id) ! Report(msg.exec_time.toLong)
       } else {
         // TODO: check (this.coordAddress == msg.coordAddress)
-        //println(s"${msg.service_name} not register, or state actor is not running.")
+        println(s"${msg.service_name}@${msg.host} not register, should be revived.")
         val conf = HippoConfig(msg.host, msg.service_name, msg.path)
         val id = conf.id
         persist(HippoAdded(conf)) { evt =>

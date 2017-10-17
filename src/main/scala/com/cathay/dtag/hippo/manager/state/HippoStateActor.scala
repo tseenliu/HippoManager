@@ -100,6 +100,8 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   def checkNotFound(updatedAt: Long, checkInterval: Long): Boolean = {
     val ct = getCurrentTime
     val realInterval = ct - updatedAt
+    println(s"realInterval: $realInterval")
+    println(s"checkInterval: $checkInterval")
     realInterval > checkInterval
   }
 
@@ -176,21 +178,24 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         goto(Dead) applying RunFail(checkInterval)
       }
     case Event(Report(updatedAt), _) =>
-      //println(s"Receive Report command at $updatedAt")
-      stay applying ReportSuccess(updatedAt)
+      println(s"Report successfully")
+      cancelTimer(CHECK_TIMER)
+      stay applying ReportSuccess(updatedAt) andThen { _ =>
+        setTimer(CHECK_TIMER, ReportCheck, getCurrentCheckInterval(), repeat = true)
+      }
 
     case Event(ReportCheck, _) =>
-      //println(s"Receive Check command at ${getCurrentTime}")
-      if (checkNotFound(stateData.updatedAt, stateData.interval)) {
+      println(s"Report Timeout!")
+      //if (checkNotFound(stateData.updatedAt, stateData.interval)) {
         cancelTimer(CHECK_TIMER)
         goto(Missing) applying NotFound andThen { _ =>
           println(s"${conf.name}@${conf.host}] missing.")
           saveStateSnapshot()
         }
-      } else {
-        println(s"${conf.name}@${conf.host}] checking successfully.")
-        stay applying Found
-      }
+//      } else {
+//        println(s"${conf.name}@${conf.host}] checking successfully.")
+//        stay applying Found
+//      }
   }
 
   when(Missing) {
