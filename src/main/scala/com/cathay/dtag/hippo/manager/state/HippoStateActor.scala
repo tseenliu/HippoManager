@@ -59,13 +59,11 @@ object HippoStateActor {
 class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, HippoEvent] {
 
   import HippoStateActor._
-  import HippoConfig._
   import HippoConfig.HippoCommand._
 
   val CHECK_TIMER: String = "check_timeout"
   val CHECK_BUFFET_TIME: Long = 1500
 
-  // TODO: Start, Restart, Stop and Check command with Hippo Config
   var controller = new CommandController(conf)
 
   override def persistenceId: String = conf.id
@@ -92,14 +90,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         currData
     }
   }
-
-//  def checkNotFound(updatedAt: Long, checkInterval: Long): Boolean = {
-//    val ct = getCurrentTime
-//    val realInterval = ct - updatedAt
-//    println(s"realInterval: $realInterval")
-//    println(s"checkInterval: $checkInterval")
-//    realInterval > checkInterval
-//  }
 
   def currentInst: HippoInstance = {
    val stateID = stateName.identifier
@@ -196,7 +186,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       }
   }
 
-  when(Missing) {
+  when(Missing, stateTimeout = 10 seconds) {
     case Event(RemoteCheck, _) =>
       val res = controller.checkHippo
 
@@ -229,6 +219,10 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         goto(Dead) applying GiveUp() andThen { _ =>
           saveStateSnapshot()
         }
+      }
+    case Event(StateTimeout, _) =>
+      stay andThen { _ =>
+        self ! RemoteCheck
       }
   }
 
