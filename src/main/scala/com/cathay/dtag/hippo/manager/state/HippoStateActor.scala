@@ -182,11 +182,10 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       goto(Missing) applying NotFound andThen { _ =>
         println(s"${conf.name}@${conf.host}] missing.")
         saveStateSnapshot()
-        self ! RemoteCheck
       }
   }
 
-  when(Missing, stateTimeout = 10 seconds) {
+  when(Missing, stateTimeout = 10 minutes) {
     case Event(RemoteCheck, _) =>
       val res = controller.checkHippo
 
@@ -254,6 +253,8 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   onTransition {
     case (Missing | Dead) -> Running =>
       setReportTimer()
+    case Running -> Missing =>
+      self ! RemoteCheck
   }
 
   whenUnhandled {
