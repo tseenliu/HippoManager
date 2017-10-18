@@ -23,7 +23,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
   implicit val ec: ExecutionContext
-  implicit val timeout = Timeout(5 seconds)
+  implicit val timeout = Timeout(10 seconds)
   val version: String
 
   val coordAddr: String
@@ -35,9 +35,10 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       complete(StatusCodes.OK, JsObject(
         "message" -> JsString("Command deliver successfully.")
       ))
-    case StateCmdFailure =>
+    case StateCmdException(reason) =>
       complete(StatusCodes.BadRequest, JsObject(
-        "message" -> JsString("Command failed.")
+        "message" -> JsString("Command failed."),
+        "reason" -> JsString(reason)
       ))
     case HippoExists =>
       complete(StatusCodes.BadRequest, JsObject(

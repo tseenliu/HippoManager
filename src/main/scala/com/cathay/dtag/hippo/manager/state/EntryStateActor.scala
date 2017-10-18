@@ -149,15 +149,16 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
         }.map { list =>
           list.map(inst => inst.conf.id -> inst).toMap
         }.map(x => HippoGroup(coordAddress, x))
-
       futureList pipeTo sender()
+
     case Operation(cmd, id) =>
-      implicit val timeout = Timeout(5 seconds)
+      implicit val timeout = Timeout(10 seconds)
       if (registry.containActor(id)) {
         (registry.getActor(id) ? cmd) pipeTo sender()
       } else {
         sender() ! HippoNotFound
       }
+
     case msg: ReportMessage =>
       val id = HippoConfig.generateHippoID(msg.host, msg.service_name)
       if (registry.containActor(id)) {

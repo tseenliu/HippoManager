@@ -40,7 +40,7 @@ class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
 
   // concurrent related
   import context.dispatcher
-  implicit val timeout = Timeout(5 seconds)
+  implicit val timeout = Timeout(10 seconds)
 
   // node settings
   implicit val node = Cluster(context.system)

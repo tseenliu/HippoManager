@@ -39,7 +39,7 @@ object HippoConfig {
     case object Stop extends HippoCommand
     case class Restart(Interval: Option[Long]=None) extends HippoCommand
     case class Report(updatedAt: Long) extends HippoCommand
-    case object ReportCheck extends HippoCommand
+    case object ReportTimeout extends HippoCommand
     case object RemoteCheck extends HippoCommand
     case object GetStatus extends HippoCommand
     case object PrintStatus extends HippoCommand
@@ -70,7 +70,7 @@ object HippoConfig {
     case object HippoNotFound extends Response
     case object EntryCmdSuccess extends Response
     case object StateCmdSuccess extends Response
-    case object StateCmdFailure extends Response
+    case class StateCmdException(reason: String) extends Response
     case class StateCmdUnhandled(currentState: String) extends Response
   }
 }

@@ -115,11 +115,11 @@ object TestCoord extends App with EnvLoader {
       (coordActor ? Operation(Start(), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Start success, interval default 30 sec.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("error, please check state.")
         case HippoNotFound =>
           println("hippo not found.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("command not handle.")
       }
     }
@@ -129,11 +129,11 @@ object TestCoord extends App with EnvLoader {
       (coordActor ? Operation(Start(Some(msInterval)), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Start success, interval $interval sec.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("error, please check state.")
         case HippoNotFound =>
           println("hippo not found.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("command not handle.")
       }
     }
@@ -142,11 +142,11 @@ object TestCoord extends App with EnvLoader {
       (coordActor ? Operation(Stop, hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println("Stop success.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("error, please check state.")
         case HippoNotFound =>
           println("hippo not found.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("command not handle.")
       }
     }
@@ -156,11 +156,11 @@ object TestCoord extends App with EnvLoader {
       (coordActor ? Operation(Restart(Some(msInterval)), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println(s"Restart success, interval $interval sec.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("error, please check state.")
         case HippoNotFound =>
           println("hippo not found.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("command not handle.")
       }
     }
@@ -169,11 +169,11 @@ object TestCoord extends App with EnvLoader {
       (coordActor ? Operation(Restart(), hippoMap(serviceName).id)) onSuccess {
         case StateCmdSuccess =>
           println("Restart success, interval default 30 sec.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("error, please check state.")
         case HippoNotFound =>
           println("hippo not found.")
-        case StateCmdFailure =>
+        case StateCmdException =>
           println("command not handle.")
       }
     }
