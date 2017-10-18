@@ -23,8 +23,8 @@ object HippoStateActor {
   case object Running extends HippoState {
     override def identifier: String = "Running"
   }
-  case object Missing extends HippoState {
-    override def identifier: String = "Missing"
+  case object Retrying extends HippoState {
+    override def identifier: String = "Retrying"
   }
   case object Dead extends HippoState {
     override def identifier: String = "Dead"
@@ -34,12 +34,12 @@ object HippoStateActor {
   sealed trait HippoData {
     val updatedAt: Long
     val interval: Long
-    val retry: Int
+    val retryNum: Int
 
   }
-  case class Program(interval: Long, updatedAt: Long, retry: Int=1) extends HippoData
+  case class Program(interval: Long, updatedAt: Long, retryNum: Int=0) extends HippoData
   case class Process(monitorPID: Int, interval: Long, updatedAt: Long) extends HippoData {
-    override val retry: Int = 0
+    override val retryNum: Int = 0
   }
 
   // FSM Event
@@ -61,9 +61,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   import HippoStateActor._
   import HippoConfig.HippoCommand._
 
-  val CHECK_TIMER: String = "check_timeout"
-  val CHECK_BUFFET_TIME: Long = 1500
-
   var controller = new CommandController(conf)
 
   override def persistenceId: String = conf.id
@@ -77,13 +74,16 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       case Confirm(true) =>
         val proc = currData.asInstanceOf[Process]
         Process(proc.monitorPID, proc.interval, evt.timestamp)
+      case Confirm(false) =>
+        Program(currData.interval, currData.updatedAt)
       case ReportSuccess(updateAt) =>
         val proc = currData.asInstanceOf[Process]
-        Process(proc.monitorPID, proc.interval, updateAt)
-      case (KillSuccess() | Confirm(false)) =>
+        val lastUpdatedAt = currData.updatedAt max updateAt
+        Process(proc.monitorPID, proc.interval, lastUpdatedAt)
+      case KillSuccess() =>
         Program(currData.interval, evt.timestamp)
       case RunFail(interval) =>
-        Program(interval, evt.timestamp, currData.retry + 1)
+        Program(interval, evt.timestamp, currData.retryNum + 1)
       case GiveUp() =>
         Program(currData.interval, evt.timestamp)
       case NotFound =>
@@ -91,6 +91,10 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     }
   }
 
+  /**
+    * Get current instance info
+    * @return HippoInstance
+    */
   def currentInst: HippoInstance = {
    val stateID = stateName.identifier
 
@@ -102,10 +106,24 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     }
   }
 
-  def setReportTimer(): Unit = {
+  /**
+    * Check Remote Setting
+    */
+  val CHECK_TIMER: String = "check_timeout"
+  val CHECK_BUFFET_TIME: Long = 1500
+
+  def setCheckTimer(): Unit = {
     val time = stateData.interval + CHECK_BUFFET_TIME
     val timeoutDuration = FiniteDuration(time, MILLISECONDS)
-    setTimer(CHECK_TIMER, ReportTimeout, timeoutDuration)
+    setTimer(CHECK_TIMER, CheckRemote, timeoutDuration)
+  }
+
+  /**
+    * Delete all the hippo related persistent data
+    */
+  def clearPersistentData(): Unit = {
+    (1L to lastSequenceNr) foreach deleteMessages
+    deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
   }
 
   /**
@@ -120,7 +138,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
 
       if (res.isSuccess) {
         goto(Running) applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
-          setReportTimer()
           saveStateSnapshot()
           sender() ! StateCmdSuccess
         }
@@ -133,12 +150,10 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     case Event(Revive(pid, interval), _) =>
       val checkInterval = interval.getOrElse(HippoConfig.DEFAULT_INTERVAL)
       goto(Running) applying RunSuccess(pid, checkInterval) andThen { _ =>
-        setReportTimer()
         saveStateSnapshot()
       }
     case Event(Delete, _) =>
-      (1L to lastSequenceNr) foreach deleteMessages
-      deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
+      clearPersistentData()
       sender() ! StateCmdSuccess
       stop()
   }
@@ -158,9 +173,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       val res = controller.restartHippo(checkInterval)
 
       if (res.isSuccess) {
-        stay applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
-          setReportTimer()
-          saveStateSnapshot()
+        goto(Running) applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
           sender() ! StateCmdSuccess
         }
       } else {
@@ -172,36 +185,23 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     case Event(Report(updatedAt), _) =>
       println(s"Report Successfully")
       cancelTimer(CHECK_TIMER)
-      stay applying ReportSuccess(updatedAt) andThen { _ =>
-        setReportTimer()
-      }
-
-    case Event(ReportTimeout, _) =>
-      println(s"Report Timeout!")
+      goto(Running) applying ReportSuccess(updatedAt)
+    case Event(CheckRemote, _) =>
+      println(s"${conf.name}@${conf.host}] report timeout.")
+      println(s"Check Remote.")
       cancelTimer(CHECK_TIMER)
-      goto(Missing) applying NotFound andThen { _ =>
-        println(s"${conf.name}@${conf.host}] missing.")
-        saveStateSnapshot()
+      val res = controller.checkHippo
+      if (res.isSuccess) {
+        goto(Running) applying Confirm(true)
+      } else {
+        goto(Retrying) applying Confirm(false)
       }
   }
 
-  when(Missing, stateTimeout = 10 minutes) {
-    case Event(RemoteCheck, _) =>
-      val res = controller.checkHippo
-
-      if (res.isSuccess) {
-        goto(Running) applying Confirm(true) andThen { _ =>
-          saveStateSnapshot()
-        }
-      } else {
-        stay applying Confirm(false) andThen { _ =>
-          // first retry
-          self ! Retry
-        }
-      }
-    case Event(Retry, Program(interval, _, retry)) =>
-      if (retry <= conf.maxRetries) {
-        println(s"retry: $retry")
+  when(Retrying, stateTimeout = 10 seconds) {
+    case Event(Retry, Program(interval, _, retryNum)) =>
+      if (retryNum < conf.maxRetries) {
+        println(s"retry num: $retryNum")
         val res = controller.startHippo(interval)
 
         if (res.isSuccess) {
@@ -210,7 +210,6 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
           }
         } else {
           stay applying RunFail(interval) andThen { _ =>
-            saveStateSnapshot()
             self ! Retry
           }
         }
@@ -221,7 +220,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       }
     case Event(StateTimeout, _) =>
       stay andThen { _ =>
-        self ! RemoteCheck
+        self ! Retry
       }
   }
 
@@ -232,29 +231,26 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
 
       if (res.isSuccess) {
         goto(Running) applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
-          setReportTimer()
           saveStateSnapshot()
           sender() ! StateCmdSuccess
         }
       } else {
         stay applying RunFail(checkInterval) andThen { _ =>
-          saveStateSnapshot()
           sender() ! StateCmdException(res.echo)
         }
       }
 
     case Event(Delete, _) =>
-      (1L to lastSequenceNr) foreach deleteMessages
-      deleteSnapshots(SnapshotSelectionCriteria(maxSequenceNr = lastSequenceNr))
+      clearPersistentData()
       sender() ! StateCmdSuccess
       stop()
   }
 
   onTransition {
-    case (Missing | Dead) -> Running =>
-      setReportTimer()
-    case Running -> Missing =>
-      self ! RemoteCheck
+    case _ -> Running =>
+      setCheckTimer()
+    case _ -> Retrying =>
+      self ! Retry
   }
 
   whenUnhandled {

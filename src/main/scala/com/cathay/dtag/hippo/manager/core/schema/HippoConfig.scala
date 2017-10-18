@@ -39,8 +39,7 @@ object HippoConfig {
     case object Stop extends HippoCommand
     case class Restart(Interval: Option[Long]=None) extends HippoCommand
     case class Report(updatedAt: Long) extends HippoCommand
-    case object ReportTimeout extends HippoCommand
-    case object RemoteCheck extends HippoCommand
+    case object CheckRemote extends HippoCommand
     case object GetStatus extends HippoCommand
     case object PrintStatus extends HippoCommand
     case object Delete extends HippoCommand
