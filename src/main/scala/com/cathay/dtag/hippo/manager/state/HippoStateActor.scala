@@ -110,7 +110,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     * Check Remote Setting
     */
   val CHECK_TIMER: String = "check_timeout"
-  val CHECK_BUFFET_TIME: Long = 1500
+  val CHECK_BUFFET_TIME: Long = 5000//1500
 
   def setCheckTimer(): Unit = {
     val time = stateData.interval + CHECK_BUFFET_TIME
@@ -173,7 +173,8 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       val res = controller.restartHippo(checkInterval)
 
       if (res.isSuccess) {
-        goto(Running) applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
+        stay applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
+          setCheckTimer()
           sender() ! StateCmdSuccess
         }
       } else {
@@ -185,14 +186,19 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     case Event(Report(updatedAt), _) =>
       println(s"Report Successfully")
       cancelTimer(CHECK_TIMER)
-      goto(Running) applying ReportSuccess(updatedAt)
+      stay applying ReportSuccess(updatedAt) andThen { _ =>
+        setCheckTimer()
+      }
     case Event(CheckRemote, _) =>
       println(s"${conf.name}@${conf.host}] report timeout.")
       println(s"Check Remote.")
       cancelTimer(CHECK_TIMER)
+
       val res = controller.checkHippo
       if (res.isSuccess) {
-        goto(Running) applying Confirm(true)
+        stay applying Confirm(true) andThen { _ =>
+          setCheckTimer()
+        }
       } else {
         goto(Retrying) applying Confirm(false)
       }
@@ -247,7 +253,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   }
 
   onTransition {
-    case _ -> Running =>
+    case (Sleep | Retrying | Dead) -> Running =>
       setCheckTimer()
     case _ -> Retrying =>
       self ! Retry
