@@ -134,7 +134,7 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
               updateRepo(evt)
               parent ! EntryCmdSuccess
             }
-          case x @ StateCmdUnhandled=>
+          case x =>
             parent ! x
         }
       } else {
