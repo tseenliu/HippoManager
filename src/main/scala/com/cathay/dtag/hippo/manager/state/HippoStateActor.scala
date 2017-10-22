@@ -53,6 +53,19 @@ object HippoStateActor {
   case object NotFound extends HippoEvent
   case class GiveUp() extends HippoEvent
   case class ReportSuccess(updateAt: Long) extends HippoEvent
+
+  case class ReportTime(last: Long = HippoConfig.getCurrentTime, current: Long = HippoConfig.getCurrentTime)
+  case class IntervalQueue(iq: List[Long] = List()) {
+    def getInterval: Long = {
+      //println(s"Queue: ${iq.sorted}")
+      iq.length match {
+        case HippoConfig.CHECK_BUFFER_QUEUE_SIZE =>
+          iq.sorted.sortWith(_ < _)((HippoConfig.CHECK_BUFFER_QUEUE_SIZE * 0.75).toInt)
+        case _ => -1
+      }
+    }
+  }
+
 }
 
 
@@ -62,6 +75,8 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   import HippoConfig.HippoCommand._
 
   var controller = new CommandController(conf)
+  var reportTime = ReportTime()
+  var intervalQueue = IntervalQueue()
 
   override def persistenceId: String = conf.id
 
@@ -110,12 +125,36 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     * Check Remote Setting
     */
   val CHECK_TIMER: String = "check_timeout"
-  val CHECK_BUFFET_TIME: Long = 5000//1500
 
   def setCheckTimer(): Unit = {
-    val time = stateData.interval + CHECK_BUFFET_TIME
+    //val time = stateData.interval + HippoConfig.CHECK_BUFFER_TIME
+    val time = getCheckoutInterval + HippoConfig.CHECK_BUFFER_TIME
     val timeoutDuration = FiniteDuration(time, MILLISECONDS)
     setTimer(CHECK_TIMER, CheckRemote, timeoutDuration)
+  }
+
+  def reset(): Unit = {
+    intervalQueue = IntervalQueue()
+    reportTime = ReportTime()
+  }
+
+  def getCheckoutInterval: Long = {
+    intervalQueue.getInterval match {
+      case -1 => stateData.interval
+      case x => x
+    }
+  }
+
+  def updateCheckoutInterval(updateAt: Long) = {
+    // Update new real Interval
+    reportTime = ReportTime(reportTime.current, updateAt)
+    // Add to Queue List
+    val interval = reportTime.current - reportTime.last
+    if (intervalQueue.iq.length == HippoConfig.CHECK_BUFFER_QUEUE_SIZE) {
+      intervalQueue = IntervalQueue(intervalQueue.iq.tail :+ interval)
+    } else {
+      intervalQueue = IntervalQueue(intervalQueue.iq :+ interval)
+    }
   }
 
   /**
@@ -174,6 +213,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
 
       if (res.isSuccess) {
         stay applying RunSuccess(res.pid.get, checkInterval) andThen { _ =>
+          reset()
           setCheckTimer()
           sender() ! StateCmdSuccess
         }
@@ -186,6 +226,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     case Event(Report(updatedAt), _) =>
       println(s"Report Successfully")
       cancelTimer(CHECK_TIMER)
+      updateCheckoutInterval(updatedAt)
       stay applying ReportSuccess(updatedAt) andThen { _ =>
         setCheckTimer()
       }
@@ -254,6 +295,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
 
   onTransition {
     case (Sleep | Retrying | Dead) -> Running =>
+      reset()
       setCheckTimer()
     case _ -> Retrying =>
       self ! Retry

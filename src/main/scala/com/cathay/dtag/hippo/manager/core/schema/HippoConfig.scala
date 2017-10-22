@@ -17,6 +17,8 @@ case class HippoConfig(host: String,
 
 object HippoConfig {
   val DEFAULT_INTERVAL: Long = 30 * 1000 // 30 seconds
+  val CHECK_BUFFER_QUEUE_SIZE: Int = 5
+  val CHECK_BUFFER_TIME: Long = 3000
   def getCurrentTime: Long = System.currentTimeMillis()
 
   def hash(s: String): BigInt = {
