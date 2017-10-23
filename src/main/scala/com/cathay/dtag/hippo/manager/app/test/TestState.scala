@@ -20,7 +20,13 @@ object TestState extends App {
 
   def createHippoActorRef(conf: HippoConfig): ActorRef = {
     println(s"${conf.id} is created at ${conf.location}")
-    system.actorOf(Props(new HippoStateActor(conf)), name = conf.id)
+    system.actorOf(Props(new HippoStateActor(
+      conf,
+      "127.0.0.1",
+      HippoConfig.DEFAULT_INTERVAL,
+      HippoConfig.CHECK_BUFFER_TIME,
+      HippoConfig.CHECK_BUFFER_QUEUE_SIZE
+    )), name = conf.id)
   }
 
   def sleepRandom(maxSeconds: Int=2000): Unit =

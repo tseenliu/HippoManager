@@ -54,14 +54,28 @@ object HippoStateActor {
   case class GiveUp() extends HippoEvent
   case class ReportSuccess(updateAt: Long) extends HippoEvent
 
-  case class ReportTime(last: Long = HippoConfig.getCurrentTime, current: Long = HippoConfig.getCurrentTime)
-  case class IntervalQueue(iq: List[Long] = List()) {
-    def getInterval: Long = {
-      //println(s"Queue: ${iq.sorted}")
+  // Interval Prediction
+  case class ReportTime(last: Long = HippoConfig.getCurrentTime,
+                        current: Long = HippoConfig.getCurrentTime)
+
+  case class IntervalQueue(iq: List[Long] = List(),
+                           max_size: Int=HippoConfig.CHECK_BUFFER_QUEUE_SIZE) {
+
+    def getInterval(percent: Double=0.75): Long = {
+      println(s"Queue: ${iq.sorted}")
       iq.length match {
-        case HippoConfig.CHECK_BUFFER_QUEUE_SIZE =>
-          iq.sorted.sortWith(_ < _)((HippoConfig.CHECK_BUFFER_QUEUE_SIZE * 0.75).toInt)
+        case v if v == max_size =>
+          val index = (max_size * percent).toInt
+          iq.sortWith(_ < _)(index)
         case _ => -1
+      }
+    }
+
+    def addInterval(interval: Long): IntervalQueue = {
+      if (iq.length == max_size) {
+        IntervalQueue(iq.tail :+ interval, max_size)
+      } else {
+        IntervalQueue(iq :+ interval, max_size)
       }
     }
   }
@@ -69,14 +83,19 @@ object HippoStateActor {
 }
 
 
-class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, HippoData, HippoEvent] {
+class HippoStateActor(var conf: HippoConfig,
+                      coordAddress: String,
+                      defaultInterval: Long,
+                      checkBufferTime: Long,
+                      checkQueueSize: Int
+                     ) extends PersistentFSM[HippoState, HippoData, HippoEvent] {
 
   import HippoStateActor._
   import HippoConfig.HippoCommand._
 
   var controller = new CommandController(conf)
   var reportTime = ReportTime()
-  var intervalQueue = IntervalQueue()
+  var intervalQueue = IntervalQueue(max_size = checkQueueSize)
 
   override def persistenceId: String = conf.id
 
@@ -127,19 +146,20 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   val CHECK_TIMER: String = "check_timeout"
 
   def setCheckTimer(): Unit = {
-    //val time = stateData.interval + HippoConfig.CHECK_BUFFER_TIME
-    val time = getCheckoutInterval + HippoConfig.CHECK_BUFFER_TIME
+    val currentInterval = getCheckoutInterval
+    println("Timer Interval:", currentInterval)
+    val time = currentInterval + checkBufferTime //HippoConfig.CHECK_BUFFER_TIME
     val timeoutDuration = FiniteDuration(time, MILLISECONDS)
     setTimer(CHECK_TIMER, CheckRemote, timeoutDuration)
   }
 
   def reset(): Unit = {
-    intervalQueue = IntervalQueue()
+    intervalQueue = IntervalQueue(max_size = checkQueueSize)
     reportTime = ReportTime()
   }
 
   def getCheckoutInterval: Long = {
-    intervalQueue.getInterval match {
+    intervalQueue.getInterval() match {
       case -1 => stateData.interval
       case x => x
     }
@@ -150,11 +170,12 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
     reportTime = ReportTime(reportTime.current, updateAt)
     // Add to Queue List
     val interval = reportTime.current - reportTime.last
-    if (intervalQueue.iq.length == HippoConfig.CHECK_BUFFER_QUEUE_SIZE) {
-      intervalQueue = IntervalQueue(intervalQueue.iq.tail :+ interval)
-    } else {
-      intervalQueue = IntervalQueue(intervalQueue.iq :+ interval)
-    }
+    intervalQueue = intervalQueue.addInterval(interval)
+//    if (intervalQueue.iq.length == HippoConfig.CHECK_BUFFER_QUEUE_SIZE) {
+//      intervalQueue = IntervalQueue(intervalQueue.iq.tail :+ interval)
+//    } else {
+//      intervalQueue = IntervalQueue(intervalQueue.iq :+ interval)
+//    }
   }
 
   /**
@@ -168,11 +189,11 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
   /**
     * Finite State Machine
     */
-  startWith(Sleep, Program(HippoConfig.DEFAULT_INTERVAL, conf.execTime))
+  startWith(Sleep, Program(defaultInterval, conf.execTime))
 
   when(Sleep) {
     case Event(Start(interval), _) =>
-      val checkInterval = interval.getOrElse(HippoConfig.DEFAULT_INTERVAL)
+      val checkInterval = interval.getOrElse(defaultInterval)
       val res = controller.startHippo(checkInterval)
 
       if (res.isSuccess) {
@@ -187,7 +208,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
         }
       }
     case Event(Revive(pid, interval), _) =>
-      val checkInterval = interval.getOrElse(HippoConfig.DEFAULT_INTERVAL)
+      val checkInterval = interval.getOrElse(defaultInterval)
       goto(Running) applying RunSuccess(pid, checkInterval) andThen { _ =>
         saveStateSnapshot()
       }
@@ -208,7 +229,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
       }
     case Event(Restart(interval), _) =>
       cancelTimer(CHECK_TIMER)
-      val checkInterval = interval.getOrElse(HippoConfig.DEFAULT_INTERVAL)
+      val checkInterval = interval.getOrElse(defaultInterval)
       val res = controller.restartHippo(checkInterval)
 
       if (res.isSuccess) {
@@ -273,7 +294,7 @@ class HippoStateActor(var conf: HippoConfig) extends PersistentFSM[HippoState, H
 
   when(Dead) {
     case Event(Start(interval), _) =>
-      val checkInterval = interval.getOrElse(HippoConfig.DEFAULT_INTERVAL)
+      val checkInterval = interval.getOrElse(defaultInterval)
       val res = controller.startHippo(checkInterval)
 
       if (res.isSuccess) {

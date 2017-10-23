@@ -74,7 +74,13 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
   var registry: HippoRegistry = HippoRegistry()
 
   def createActor(conf: HippoConfig): ActorRef = {
-    context.actorOf(Props(new HippoStateActor(conf)), name = conf.id)
+    context.actorOf(Props(new HippoStateActor(
+      conf,
+      coordAddress,
+      HippoConfig.DEFAULT_INTERVAL,
+      HippoConfig.CHECK_BUFFER_TIME,
+      HippoConfig.CHECK_BUFFER_QUEUE_SIZE
+    )), name = conf.id)
   }
 
   def takeSnapShot(): Unit = {
