@@ -31,13 +31,13 @@ class APIServer(clusterConfig: Config,
   override implicit val ec: ExecutionContext = system.dispatcher
 
   // Coordinator setting
-  def setCoordAddr: String = {
+  def setCoordAddress: String = {
     val coord: Config = serviceConfig.getConfig("coordinator")
     val host: String = coord.getString("host")
     val port: Int = coord.getInt("port")
     s"akka.tcp://$sysName@$host:$port"
   }
-  val coordAddr: String = setCoordAddr
+  val coordAddress: String = setCoordAddress
 
   // API setting
   val server: Config = serviceConfig.getConfig("api")

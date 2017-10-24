@@ -91,7 +91,7 @@ class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
       (entry ? cmd) pipeTo sender()
 
     case UpdateStatus =>
-      (entry ? GetNodeStatus).mapTo[HippoGroup].map { group =>
+      (entry ? GetNodeStatus()).mapTo[HippoGroup].map { group =>
         hippoGroup = group
         val writeAll = WriteAll(timeout = 5.seconds)
         replicator ! Update(HippoGroupKey,
@@ -112,6 +112,7 @@ class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
     case g @ GetSuccess(HippoGroupKey, Some(replyTo: ActorRef)) =>
       println("GetSuccess ddata...")
       val value = g.get(HippoGroupKey)
+      println(value)
       replyTo ! value.entries
 
     case GetFailure(HippoGroupKey, Some(replyTo: ActorRef)) =>

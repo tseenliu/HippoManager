@@ -26,9 +26,9 @@ trait APIRoute extends Directives with HippoJsonProtocol {
   implicit val timeout = Timeout(10 seconds)
   val version: String
 
-  val coordAddr: String
+  val coordAddress: String
   def coordinator: ActorSelection =
-    system.actorSelection(s"$coordAddr/user/coordinator")
+    system.actorSelection(s"$coordAddress/user/coordinator")
 
   def handleResponse(x: Any): Route = x match {
     case EntryCmdSuccess | StateCmdSuccess =>
@@ -121,25 +121,27 @@ trait APIRoute extends Directives with HippoJsonProtocol {
             case EntryCmdSuccess =>
               complete(StatusCodes.Created, JsObject(
                 "id" -> JsString(config.id),
-                "coordAddr" -> JsString(this.coordAddr)
+                "coordAddress" -> JsString(this.coordAddress)
               ))
             case x =>
               handleResponse(x)
           }
         } ~
-        get {
+        (get & parameterMap) { params =>
           // 2. Get cluster status
           complete {
             (coordinator ? GetClusterStatus)
-              .mapTo[Map[String, HippoGroup]].map(_.values)
+              .mapTo[Map[String, HippoGroup]]
+              //.map(_.values)
+              .map(_.values.map(_.filterByParams(params)))
           }
         }
       } ~
       path("node") {
-        get {
+        (get & parameterMap) { params =>
           // 3. Get node status
           complete {
-            (coordinator ? GetNodeStatus).mapTo[HippoGroup]
+            (coordinator ? GetNodeStatus(params)).mapTo[HippoGroup]
           }
         }
       } ~
@@ -156,7 +158,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
         }
       } ~
       (post & entity(as[CommandParams])) { cmdParams =>
-        val id = HippoConfig.generateHippoID(cmdParams.host, cmdParams.serviceName)
+        val id = HippoConfig.generateHippoID(cmdParams.clientIP, cmdParams.serviceName)
         commandRoute(id, cmdParams.interval)
       }
     }

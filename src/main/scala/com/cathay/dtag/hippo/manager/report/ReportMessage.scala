@@ -6,7 +6,7 @@ import spray.json.DefaultJsonProtocol
   * Created by Tse-En on 2017/9/8.
   */
 // TODO: schema type should not all be String
-case class ReportMessage (host: String,
+case class ReportMessage (clientIP: String,
                           path: String,
                           service_name: String,
                           monitor_pid: String,

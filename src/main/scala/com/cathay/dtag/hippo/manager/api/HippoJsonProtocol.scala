@@ -5,7 +5,7 @@ import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, Hippo
 import spray.json._
 
 
-case class CommandParams(host: String,
+case class CommandParams(clientIP: String,
                          serviceName: String,
                          path: Option[String],
                          interval: Option[Long])
@@ -17,17 +17,18 @@ trait HippoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object ConfigFormat extends RootJsonFormat[HippoConfig] {
     override def write(obj: HippoConfig): JsValue = {
       JsObject(
-        "host" -> JsString(obj.host),
+        "clientIP" -> JsString(obj.clientIP),
         "serviceName" -> JsString(obj.name),
         "path" -> JsString(obj.path),
+        "user" -> JsString(obj.user),
         "execTime" -> JsNumber(obj.execTime)
       )
     }
 
     override def read(json: JsValue): HippoConfig = {
-      json.asJsObject.getFields("host", "serviceName", "path") match {
-        case Seq(JsString(host), JsString(name), JsString(path)) =>
-          HippoConfig(host, name, path)
+      json.asJsObject.getFields("clientIP", "serviceName", "path", "user") match {
+        case Seq(JsString(host), JsString(name), JsString(path), JsString(user)) =>
+          HippoConfig(host, name, path, user)
         case _ =>
           deserializationError("Hippo Config parse error.")
       }
@@ -65,14 +66,14 @@ trait HippoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object GroupFormat extends RootJsonFormat[HippoGroup] {
     override def write(obj: HippoGroup): JsValue = {
       JsObject(
-        "coordAddr" -> JsString(obj.nodeAddress),
+        "coordAddress" -> JsString(obj.nodeAddress),
         "snapshotTime" -> JsNumber(obj.createdAt),
         "instances" -> JsArray(obj.group.values.map(_.toJson).toSeq: _*)
       )
     }
 
     override def read(json: JsValue): HippoGroup = {
-      val address = json.asJsObject.fields("coordAddr")
+      val address = json.asJsObject.fields("coordAddress")
         .convertTo[String]
       val group = json.asJsObject.fields("instances")
         .convertTo[Seq[HippoInstance]]
