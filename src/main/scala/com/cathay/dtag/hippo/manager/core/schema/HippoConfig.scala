@@ -3,15 +3,16 @@ package com.cathay.dtag.hippo.manager.core.schema
 import java.security.MessageDigest
 
 
-case class HippoConfig(host: String,
+case class HippoConfig(clientIP: String,
                        name: String,
                        path: String,
+                       user: String="UNKNOWN",
                        execTime: Long=HippoConfig.getCurrentTime,
                        maxRetries: Int=3) {
 
-  def location: String = s"$name@$host:$path"
-  val key: String = s"$name@$host"
-  val id: String = HippoConfig.generateHippoID(host, name)
+  def location: String = s"$name@$clientIP:$path"
+  val key: String = s"$name@$clientIP"
+  val id: String = HippoConfig.generateHippoID(clientIP, name)
   override val hashCode: Int = HippoConfig.hash(key).intValue()
 }
 
@@ -54,7 +55,7 @@ object HippoConfig {
     case class Register(conf: HippoConfig) extends EntryCommand
     case class Remove(id: String) extends EntryCommand
     case class Operation(cmd: HippoCommand, id: String) extends EntryCommand
-    case object GetNodeStatus extends EntryCommand
+    case class GetNodeStatus(params: Map[String, String]=Map()) extends EntryCommand
   }
 
   sealed trait CoordCommand extends ManagerCommand

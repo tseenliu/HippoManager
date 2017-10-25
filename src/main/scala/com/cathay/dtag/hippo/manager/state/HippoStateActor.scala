@@ -78,10 +78,9 @@ object HippoStateActor {
         IntervalQueue(iq :+ interval, max_size)
       }
     }
+
   }
-
 }
-
 
 class HippoStateActor(var conf: HippoConfig,
                       coordAddress: String,
@@ -171,11 +170,6 @@ class HippoStateActor(var conf: HippoConfig,
     // Add to Queue List
     val interval = reportTime.current - reportTime.last
     intervalQueue = intervalQueue.addInterval(interval)
-//    if (intervalQueue.iq.length == HippoConfig.CHECK_BUFFER_QUEUE_SIZE) {
-//      intervalQueue = IntervalQueue(intervalQueue.iq.tail :+ interval)
-//    } else {
-//      intervalQueue = IntervalQueue(intervalQueue.iq :+ interval)
-//    }
   }
 
   /**
@@ -252,7 +246,7 @@ class HippoStateActor(var conf: HippoConfig,
         setCheckTimer()
       }
     case Event(CheckRemote, _) =>
-      println(s"${conf.name}@${conf.host}] report timeout.")
+      println(s"${conf.name}@${conf.clientIP}] report timeout.")
       println(s"Check Remote.")
       cancelTimer(CHECK_TIMER)
 

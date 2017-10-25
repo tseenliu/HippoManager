@@ -147,13 +147,15 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
         parent ! HippoNotFound
       }
 
-    case GetNodeStatus =>
+    case GetNodeStatus(params) =>
       // TODO: Cache result
       implicit val timeout = Timeout(5 seconds)
       val futureList = Future.traverse(registry.getActors) { actor =>
           (actor ? GetStatus).mapTo[HippoInstance]
         }.map { list =>
-          list.map(inst => inst.conf.id -> inst).toMap
+          list
+            .filter(_.isMatch(params))
+            .map(inst => inst.conf.id -> inst).toMap
         }.map(x => HippoGroup(coordAddress, x))
       futureList pipeTo sender()
 
@@ -166,14 +168,14 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
       }
 
     case msg: ReportMessage =>
-      val id = HippoConfig.generateHippoID(msg.host, msg.service_name)
+      val id = HippoConfig.generateHippoID(msg.clientIP, msg.service_name)
       if (this.coordAddress == msg.coordAddress) {
         if (registry.containActor(id)) {
           registry.getActor(id) ! Report(msg.exec_time)
         } else {
           // TODO: check (this.coordAddress == msg.coordAddress)
-          println(s"${msg.service_name}@${msg.host} not register, should be revived.")
-          val conf = HippoConfig(msg.host, msg.service_name, msg.path)
+          println(s"${msg.service_name}@${msg.clientIP} not register, should be revived.")
+          val conf = HippoConfig(msg.clientIP, msg.service_name, msg.path)
           val id = conf.id
           persist(HippoAdded(conf)) { evt =>
             updateRepo(evt)
