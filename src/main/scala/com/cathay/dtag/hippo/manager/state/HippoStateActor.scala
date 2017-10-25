@@ -146,7 +146,7 @@ class HippoStateActor(var conf: HippoConfig,
 
   def setCheckTimer(): Unit = {
     val currentInterval = getCheckoutInterval
-    println("Timer Interval:", currentInterval)
+    println(s"Timer Interval: $currentInterval")
     val time = currentInterval + checkBufferTime //HippoConfig.CHECK_BUFFER_TIME
     val timeoutDuration = FiniteDuration(time, MILLISECONDS)
     setTimer(CHECK_TIMER, CheckRemote, timeoutDuration)

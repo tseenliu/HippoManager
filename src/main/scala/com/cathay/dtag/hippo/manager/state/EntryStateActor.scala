@@ -175,6 +175,7 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
         } else {
           // TODO: check (this.coordAddress == msg.coordAddress)
           println(s"${msg.service_name}@${msg.clientIP} not register, should be revived.")
+          //TODO: user
           val conf = HippoConfig(msg.clientIP, msg.service_name, msg.path)
           val id = conf.id
           persist(HippoAdded(conf)) { evt =>
