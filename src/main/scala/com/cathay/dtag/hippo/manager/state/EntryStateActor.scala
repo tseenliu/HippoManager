@@ -167,19 +167,22 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
 
     case msg: ReportMessage =>
       val id = HippoConfig.generateHippoID(msg.host, msg.service_name)
-      if (registry.containActor(id)) {
-        registry.getActor(id) ! Report(msg.exec_time.toLong)
-      } else {
-        // TODO: check (this.coordAddress == msg.coordAddress)
-        println(s"${msg.service_name}@${msg.host} not register, should be revived.")
-        val conf = HippoConfig(msg.host, msg.service_name, msg.path)
-        val id = conf.id
-        persist(HippoAdded(conf)) { evt =>
-          updateRepo(evt)
-          // TODO: get pid and checkInterval from msg
-          registry.getActor(id) ! Revive(msg.monitor_pid.toInt)
+      if (this.coordAddress == msg.coordAddress) {
+        if (registry.containActor(id)) {
+          registry.getActor(id) ! Report(msg.exec_time)
+        } else {
+          // TODO: check (this.coordAddress == msg.coordAddress)
+          println(s"${msg.service_name}@${msg.host} not register, should be revived.")
+          val conf = HippoConfig(msg.host, msg.service_name, msg.path)
+          val id = conf.id
+          persist(HippoAdded(conf)) { evt =>
+            updateRepo(evt)
+            // TODO: get pid and checkInterval from msg
+            registry.getActor(id) ! Revive(msg.monitor_pid, Some(msg.interval))
+          }
         }
       }
+
   }
 }
 

@@ -13,7 +13,7 @@ case class BashResult(code: Int, pid: Option[Int], echo: String="") {
 
 case class BashHandler(exitCode: Int, stdout: StringBuilder, stderr: StringBuilder)
 
-class CommandController(conf: HippoConfig) {
+class CommandController(coordAddress: String, conf: HippoConfig) {
   private val servicePath = s"${conf.path}"
   private val startPattern = s"Monitor-${conf.name} pid : ([0-9]+)\n${conf.name} pid : ([0-9]+)".r
   private val stopPattern =   s"Stopping Monitor-${conf.name} successfully , whose pid is ([0-9]+)\nStopping ${conf.name} successfully , whose pid is ([0-9]+)".r
@@ -25,11 +25,11 @@ class CommandController(conf: HippoConfig) {
     val stderr = new StringBuilder
     option match {
       case "start" =>
-        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-i", (checkInterval/1000).toString, conf.name) !
+        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-c", coordAddress, "-i", (checkInterval/1000).toString, conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "restart" =>
-        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-r", "-i", (checkInterval/1000).toString, conf.name) !
+        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-c", coordAddress, "-r", "-i", (checkInterval/1000).toString, conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "stop" =>

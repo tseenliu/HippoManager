@@ -57,7 +57,7 @@ class HippoReporter(config: Config, receiver: ActorRef) extends Actor with Actor
   }
 
   protected def processValue(message: ReportMessage): Unit = {
-    if (message.is_success.toInt == 1) {
+    if (message.is_success == 1) {
       //context.actorSelection("../entry-state") ! message
       receiver ! message
     }  else {

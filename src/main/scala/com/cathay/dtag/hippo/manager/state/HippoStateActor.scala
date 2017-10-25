@@ -93,7 +93,7 @@ class HippoStateActor(var conf: HippoConfig,
   import HippoStateActor._
   import HippoConfig.HippoCommand._
 
-  var controller = new CommandController(conf)
+  var controller = new CommandController(coordAddress, conf)
   var reportTime = ReportTime()
   var intervalQueue = IntervalQueue(max_size = checkQueueSize)
 
