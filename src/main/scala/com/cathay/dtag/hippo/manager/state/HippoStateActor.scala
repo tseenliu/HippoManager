@@ -62,7 +62,7 @@ object HippoStateActor {
                            max_size: Int=HippoConfig.CHECK_BUFFER_QUEUE_SIZE) {
 
     def getInterval(percent: Double=0.75): Long = {
-      println(s"Queue: ${iq.sorted}")
+      //println(s"Queue: ${iq.sorted}")
       iq.length match {
         case v if v == max_size =>
           val index = (max_size * percent).toInt
@@ -146,7 +146,7 @@ class HippoStateActor(var conf: HippoConfig,
 
   def setCheckTimer(): Unit = {
     val currentInterval = getCheckoutInterval
-    println(s"Timer Interval: $currentInterval")
+    //println(s"Timer Interval: $currentInterval")
     val time = currentInterval + checkBufferTime //HippoConfig.CHECK_BUFFER_TIME
     val timeoutDuration = FiniteDuration(time, MILLISECONDS)
     setTimer(CHECK_TIMER, CheckRemote, timeoutDuration)
@@ -239,7 +239,7 @@ class HippoStateActor(var conf: HippoConfig,
         }
       }
     case Event(Report(updatedAt), _) =>
-      println(s"Report Successfully")
+      //println(s"Report Successfully")
       cancelTimer(CHECK_TIMER)
       updateCheckoutInterval(updatedAt)
       stay applying ReportSuccess(updatedAt) andThen { _ =>

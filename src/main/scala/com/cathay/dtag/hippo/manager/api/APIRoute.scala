@@ -145,10 +145,10 @@ trait APIRoute extends Directives with HippoJsonProtocol {
           }
         }
       } ~
-      pathPrefix("host" / Segment / "name" / Segment) { (host, name) =>
-        val id = HippoConfig.generateHippoID(host, name)
-        instanceRoute(id)
-      } ~
+//      pathPrefix("host" / Segment / "name" / Segment) { (host, name) =>
+//        val id = HippoConfig.generateHippoID(host, name)
+//        instanceRoute(id)
+//      } ~
       pathPrefix("instances" / Segment) { id =>
         instanceRoute(id) ~
         (post & entity(as[JsValue])) { json =>
@@ -156,10 +156,11 @@ trait APIRoute extends Directives with HippoJsonProtocol {
           val interval = value.map(_.convertTo[Long])
           commandRoute(id, interval)
         }
-      } ~
-      (post & entity(as[CommandParams])) { cmdParams =>
-        val id = HippoConfig.generateHippoID(cmdParams.clientIP, cmdParams.serviceName)
-        commandRoute(id, cmdParams.interval)
       }
+//      ~
+//      (post & entity(as[CommandParams])) { cmdParams =>
+//        val id = HippoConfig.generateHippoID(cmdParams.clientIP, cmdParams.path.get , cmdParams.serviceName)
+//        commandRoute(id, cmdParams.interval)
+//      }
     }
 }

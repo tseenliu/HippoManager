@@ -168,7 +168,7 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
       }
 
     case msg: ReportMessage =>
-      val id = HippoConfig.generateHippoID(msg.clientIP, msg.service_name)
+      val id = HippoConfig.generateHippoID(msg.clientIP, msg.path, msg.service_name)
       if (this.coordAddress == msg.coordAddress) {
         if (registry.containActor(id)) {
           registry.getActor(id) ! Report(msg.exec_time)
@@ -176,7 +176,7 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
           // TODO: check (this.coordAddress == msg.coordAddress)
           println(s"${msg.service_name}@${msg.clientIP} not register, should be revived.")
           //TODO: user
-          val conf = HippoConfig(msg.clientIP, msg.service_name, msg.path)
+          val conf = HippoConfig(msg.clientIP, msg.service_name, msg.path, msg.user.getOrElse("UNKNOWN"))
           val id = conf.id
           persist(HippoAdded(conf)) { evt =>
             updateRepo(evt)

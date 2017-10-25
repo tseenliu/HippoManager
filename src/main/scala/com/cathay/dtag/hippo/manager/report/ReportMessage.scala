@@ -9,6 +9,7 @@ import spray.json.DefaultJsonProtocol
 case class ReportMessage (clientIP: String,
                           path: String,
                           service_name: String,
+                          user: Option[String],
                           monitor_pid: Int,
                           service_pid: Int,
                           exec_time: Long,
@@ -19,5 +20,5 @@ case class ReportMessage (clientIP: String,
                           )
 
 object JsonProtocol extends DefaultJsonProtocol {
-  implicit val frontierFormat = jsonFormat10(ReportMessage)
+  implicit val frontierFormat = jsonFormat11(ReportMessage)
 }

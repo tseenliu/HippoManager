@@ -12,7 +12,7 @@ case class HippoConfig(clientIP: String,
 
   def location: String = s"$name@$clientIP:$path"
   val key: String = s"$name@$clientIP"
-  val id: String = HippoConfig.generateHippoID(clientIP, name)
+  val id: String = HippoConfig.generateHippoID(clientIP, path, name)
   override val hashCode: Int = HippoConfig.hash(key).intValue()
 }
 
@@ -29,8 +29,8 @@ object HippoConfig {
     new java.math.BigInteger(1, m.digest())//.toString(16)
   }
 
-  def generateHippoID(host: String, name: String): String = {
-    hash(s"$name@$host").toString(16)
+  def generateHippoID(clientIP: String, path: String, name: String): String = {
+    hash(s"$name@$clientIP:$path").toString(16)
   }
 
   // Command from outer
