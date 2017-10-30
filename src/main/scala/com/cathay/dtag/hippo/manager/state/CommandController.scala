@@ -25,11 +25,11 @@ class CommandController(coordAddress: String, conf: HippoConfig) {
     val stderr = new StringBuilder
     option match {
       case "start" =>
-        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-c", coordAddress, "-i", checkInterval.toString, conf.name) !
+        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-i", checkInterval.toString, conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "restart" =>
-        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-c", coordAddress, "-r", "-i", checkInterval.toString, conf.name) !
+        val exitCode = Seq("/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-r", "-i", checkInterval.toString, conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "stop" =>
