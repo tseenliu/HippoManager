@@ -24,19 +24,19 @@ class CommandController(coordAddress: String, conf: HippoConfig) {
     val stderr = new StringBuilder
     option match {
       case "start" =>
-        val exitCode = Seq("ssh", s"{hadoop@${conf.clientIP}}", "/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-i", checkInterval.toString, conf.name) !
+        val exitCode = Seq("ssh", s"ubuntu@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-i", checkInterval.toString, conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "restart" =>
-        val exitCode = Seq("ssh", s"{hadoop@${conf.clientIP}}", "/bin/sh", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-r", "-i", checkInterval.toString, conf.name) !
+        val exitCode = Seq("ssh", s"ubuntu@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-r", "-i", checkInterval.toString, conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "stop" =>
-        val exitCode = Seq("ssh", s"{hadoop@${conf.clientIP}}", "/bin/sh", s"$servicePath/hippo/bin/monitor-stop", conf.name) !
+        val exitCode = Seq("ssh", s"ubuntu@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-stop", conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "check" =>
-        val exitCode = Seq("ssh", s"{hadoop@${conf.clientIP}}", "/bin/sh", s"$servicePath/hippo/bin/monitor-status", conf.name) !
+        val exitCode = Seq("ssh", s"ubuntu@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-status", conf.name) !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
     }
