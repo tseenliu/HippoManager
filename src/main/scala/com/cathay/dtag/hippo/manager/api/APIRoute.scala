@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.pattern.ask
+import com.cathay.dtag.hippo.manager.coord.KeyGenerator
 import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.{EntryCommand, HippoCommand}
 import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 
@@ -143,6 +144,12 @@ trait APIRoute extends Directives with HippoJsonProtocol {
           complete {
             (coordinator ? GetNodeStatus(params)).mapTo[HippoGroup]
           }
+        }
+      } ~
+      path("key") {
+        (get & parameterMap) { params =>
+          val keyGen = new KeyGenerator
+          complete (JsObject("key" -> JsString(keyGen.getKey)))
         }
       } ~
 //      pathPrefix("host" / Segment / "name" / Segment) { (host, name) =>
