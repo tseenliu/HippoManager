@@ -63,6 +63,7 @@ object HippoConfig {
     case object UpdateStatus extends CoordCommand
     case object PrintNodeStatus extends CoordCommand
     case object GetClusterStatus extends CoordCommand
+    case object GetSSHkey extends CoordCommand
   }
 
   // Response

@@ -1,13 +1,12 @@
 package com.cathay.dtag.hippo.manager.api
 
-import akka.actor.{ActorRef, ActorSelection, ActorSystem}
+import akka.actor.{ActorSelection, ActorSystem}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.pattern.ask
-import com.cathay.dtag.hippo.manager.coord.KeyGenerator
-import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.{EntryCommand, HippoCommand}
+import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.EntryCommand
 import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 
 import scala.concurrent.duration._
@@ -26,8 +25,8 @@ trait APIRoute extends Directives with HippoJsonProtocol {
   implicit val ec: ExecutionContext
   implicit val timeout = Timeout(10 seconds)
   val version: String
-
   val coordAddress: String
+
   def coordinator: ActorSelection =
     system.actorSelection(s"$coordAddress/user/coordinator")
 
@@ -148,8 +147,12 @@ trait APIRoute extends Directives with HippoJsonProtocol {
       } ~
       path("key") {
         (get & parameterMap) { params =>
-          val keyGen = new KeyGenerator
-          complete (JsObject("key" -> JsString(keyGen.getKey)))
+          // 4. Get coordinator key
+          complete{
+            (coordinator ? GetSSHkey).mapTo[CoorRsaKey]
+          }
+          //val keyGen = new KeyGenerator
+          //complete (JsObject("key" -> JsString(keyGen.getKey)))
         }
       } ~
 //      pathPrefix("host" / Segment / "name" / Segment) { (host, name) =>

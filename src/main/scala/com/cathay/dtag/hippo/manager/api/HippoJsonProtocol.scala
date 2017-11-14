@@ -9,9 +9,11 @@ case class CommandParams(clientIP: String,
                          serviceName: String,
                          path: Option[String],
                          interval: Option[Long])
+case class CoorRsaKey(key: String)
 
 trait HippoJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val commandFormat = jsonFormat4(CommandParams)
+  implicit val keyFormat = jsonFormat1(CoorRsaKey)
 
   // HippoConfig
   implicit object ConfigFormat extends RootJsonFormat[HippoConfig] {

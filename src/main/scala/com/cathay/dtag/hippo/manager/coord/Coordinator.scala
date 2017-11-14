@@ -7,6 +7,7 @@ import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
+import com.cathay.dtag.hippo.manager.api.CoorRsaKey
 import com.cathay.dtag.hippo.manager.core.env.EnvLoader
 import com.typesafe.config.Config
 
@@ -86,6 +87,11 @@ class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
         val memberAddr = member.address.toString
         if (m.contains(memberAddr)) m - memberAddr else m
       }
+
+    case GetSSHkey =>
+      val keyGen = new KeyGenerator
+      sender() ! CoorRsaKey(keyGen.getKey)
+      //Future(RSAKey.getKey) pipeTo sender()
 
     case cmd: EntryCommand =>
       (entry ? cmd) pipeTo sender()
