@@ -8,6 +8,8 @@ resolvers += Resolver.bintrayRepo("cakesolutions", "maven")
 
 enablePlugins(JavaAppPackaging)
 
+dockerEntrypoint := Seq("bin/boot")
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.5.3",
   "com.typesafe.akka" %% "akka-remote" % "2.5.3",
