@@ -20,23 +20,28 @@ class CommandController(coordAddress: String, conf: HippoConfig) {
   private val statusPattern = s"Monitor-${conf.name} is running : ([0-9]+)\n${conf.name} is running : ([0-9]+)".r
 
   def runHippoPlugin(option: String, checkInterval: Long = 0): BashHandler = {
+    val remoteConnect = Seq("ssh", s"${conf.user}@${conf.clientIP}", "-o", "StrictHostKeyChecking=no")
     val stdout = new StringBuilder
     val stderr = new StringBuilder
     option match {
       case "start" =>
-        val exitCode = Seq("ssh", s"${conf.user}@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-i", checkInterval.toString, conf.name) !
+        val execute = Seq("/bin/bash", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-i", checkInterval.toString, conf.name)
+        val exitCode = remoteConnect ++: execute !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "restart" =>
-        val exitCode = Seq("ssh", s"${conf.user}@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-r", "-i", checkInterval.toString, conf.name) !
+        val execute = Seq("/bin/bash", s"$servicePath/hippo/bin/monitor-start", "-u", conf.user, "-c", coordAddress, "-r", "-i", checkInterval.toString, conf.name)
+        val exitCode = remoteConnect ++: execute !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "stop" =>
-        val exitCode = Seq("ssh", s"${conf.user}@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-stop", conf.name) !
+        val execute = Seq("/bin/bash", s"$servicePath/hippo/bin/monitor-stop", conf.name)
+        val exitCode = remoteConnect ++: execute !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
       case "check" =>
-        val exitCode = Seq("ssh", s"${conf.user}@${conf.clientIP}", "/bin/bash", s"$servicePath/hippo/bin/monitor-status", conf.name) !
+        val execute = Seq("/bin/bash", s"$servicePath/hippo/bin/monitor-status", conf.name)
+        val exitCode = remoteConnect ++: execute !
           ProcessLogger(stdout append _ + "\n", stderr append _ + "\n")
         BashHandler(exitCode, stdout, stderr)
     }
