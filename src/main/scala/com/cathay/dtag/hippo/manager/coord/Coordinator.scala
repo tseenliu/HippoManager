@@ -29,7 +29,7 @@ object Coordinator extends EnvLoader {
   }
 
   def main(args: Array[String]): Unit = {
-    configDir = if (args.length > 0) args(0) else "config"
+    configDir = if (args.length > 0) args(0) else "config/local"
     val coordConfig = getConfig("coordinator").resolve()
     val reporterConfig = getConfig("reporter")
     Coordinator.initiate(coordConfig, reporterConfig)

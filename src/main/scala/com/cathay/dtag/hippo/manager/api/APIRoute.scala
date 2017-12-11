@@ -23,7 +23,7 @@ trait APIRoute extends Directives with HippoJsonProtocol {
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
   implicit val ec: ExecutionContext
-  implicit val timeout = Timeout(10 seconds)
+  implicit val timeout = Timeout(40 seconds)
   val version: String
   val coordAddress: String
 

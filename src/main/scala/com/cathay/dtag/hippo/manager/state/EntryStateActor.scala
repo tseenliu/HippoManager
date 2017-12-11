@@ -64,6 +64,8 @@ object EntryStateActor {
 
 class EntryStateActor(coordAddress: String) extends PersistentActor {
 
+  implicit val timeout = Timeout(30 seconds)
+
   import EntryStateActor._
   import HippoConfig.HippoCommand._
   import HippoConfig.EntryCommand._
@@ -131,7 +133,6 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
       }
 
     case Remove(id) =>
-      implicit val timeout = Timeout(5 seconds)
       val parent = sender()
       if (registry.hasRegistered(id)) {
         (registry.getActor(id) ? Delete) onSuccess {
@@ -149,7 +150,6 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
 
     case GetNodeStatus(params) =>
       // TODO: Cache result
-      implicit val timeout = Timeout(5 seconds)
       val futureList = Future.traverse(registry.getActors) { actor =>
           (actor ? GetStatus).mapTo[HippoInstance]
         }.map { list =>
@@ -160,7 +160,6 @@ class EntryStateActor(coordAddress: String) extends PersistentActor {
       futureList pipeTo sender()
 
     case Operation(cmd, id) =>
-      implicit val timeout = Timeout(10 seconds)
       if (registry.containActor(id)) {
         (registry.getActor(id) ? cmd) pipeTo sender()
       } else {
