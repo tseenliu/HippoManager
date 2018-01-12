@@ -6,6 +6,7 @@ import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import com.cathay.dtag.hippo.manager.core.schema.{HippoConfig, HippoGroup, HippoInstance}
 import com.cathay.dtag.hippo.manager.report.ReportMessage
+import com.typesafe.config.Config
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -62,9 +63,9 @@ object EntryStateActor {
   }
 }
 
-class EntryStateActor(coordAddress: String) extends PersistentActor {
+class EntryStateActor(coordConfig: Config, coordAddress: String) extends PersistentActor {
 
-  implicit val timeout = Timeout(30 seconds)
+  implicit val timeout = Timeout(coordConfig.getString("akka.timeout").toInt seconds)
 
   import EntryStateActor._
   import HippoConfig.HippoCommand._

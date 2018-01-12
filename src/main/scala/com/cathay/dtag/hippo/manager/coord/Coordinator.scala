@@ -25,7 +25,7 @@ object Coordinator extends EnvLoader {
 
     val sysName = coordConfig.getString("system-name")
     val system = ActorSystem(sysName, coordConfig)
-    system.actorOf(Props(new Coordinator(reporterConfig)), name="coordinator")
+    system.actorOf(Props(new Coordinator(coordConfig, reporterConfig)), name="coordinator")
   }
 
   def main(args: Array[String]): Unit = {
@@ -36,12 +36,12 @@ object Coordinator extends EnvLoader {
   }
 }
 
-class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
+class Coordinator(coordConfig: Config, reporterConfig: Config) extends Actor with ActorLogging {
   import com.cathay.dtag.hippo.manager.core.schema.HippoConfig.CoordCommand._
 
   // concurrent related
   import context.dispatcher
-  implicit val timeout = Timeout(10 seconds)
+  implicit val timeout = Timeout(coordConfig.getString("akka.timeout").toInt seconds)
 
   // node settings
   implicit val node = Cluster(context.system)
@@ -49,7 +49,7 @@ class Coordinator(reporterConfig: Config) extends Actor with ActorLogging {
 
   // entry actor
   val entry: ActorRef = context.actorOf(
-    Props(new EntryStateActor(addr)), name = "entry-state")
+    Props(new EntryStateActor(coordConfig, addr)), name = "entry-state")
 
   // report actor
   val reporter: ActorRef = context.actorOf(

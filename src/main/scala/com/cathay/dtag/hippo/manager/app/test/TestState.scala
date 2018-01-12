@@ -32,7 +32,7 @@ object TestState extends App {
   def sleepRandom(maxSeconds: Int=2000): Unit =
     Thread.sleep(r.nextInt(maxSeconds) + 1000)
 
-  val entry = system.actorOf(Props(new EntryStateActor("localhost")), name="entry")
+//  val entry = system.actorOf(Props(new EntryStateActor("localhost")), name="entry")
 
   sleepRandom()
 
@@ -54,12 +54,12 @@ object TestState extends App {
 //  }
 //  sleepRandom()
 //
-  (entry ? GetNodeStatus).mapTo[HippoGroup].onComplete {
-    case Success(hippos) =>
-      hippos.group.values.foreach(println)
-    case Failure(e) =>
-      println(e.getMessage)
-  }
+//  (entry ? GetNodeStatus).mapTo[HippoGroup].onComplete {
+//    case Success(hippos) =>
+//      hippos.group.values.foreach(println)
+//    case Failure(e) =>
+//      println(e.getMessage)
+//  }
 //  Thread.sleep(5000)
 //
 //  (entry ? Operation(Start(Some(10000)), hConf1.id)) onSuccess {

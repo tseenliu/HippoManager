@@ -5,9 +5,11 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.ExceptionHandler
 import akka.stream.ActorMaterializer
+import akka.util.Timeout
 import com.cathay.dtag.hippo.manager.core.env.EnvLoader
 import com.typesafe.config.Config
 import spray.json.{JsObject, JsString}
+import scala.concurrent.duration._
 
 import scala.concurrent.ExecutionContext
 
@@ -29,6 +31,7 @@ class APIServer(clusterConfig: Config,
   override implicit val system = ActorSystem(sysName, clusterConfig)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
   override implicit val ec: ExecutionContext = system.dispatcher
+  override implicit val timeout = Timeout(clusterConfig.getString("akka.timeout").toInt seconds)
 
   // Coordinator setting
   def setCoordAddress: String = {
