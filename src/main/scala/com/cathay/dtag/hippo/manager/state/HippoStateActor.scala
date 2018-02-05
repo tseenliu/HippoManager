@@ -302,6 +302,12 @@ class HippoStateActor(var conf: HippoConfig,
         }
       }
 
+    case Event(Revive(pid, interval), _) =>
+      val checkInterval = interval.getOrElse(defaultInterval)
+      goto(Running) applying RunSuccess(pid, checkInterval) andThen { _ =>
+        saveStateSnapshot()
+      }
+
     case Event(Delete, _) =>
       clearPersistentData()
       sender() ! StateCmdSuccess
